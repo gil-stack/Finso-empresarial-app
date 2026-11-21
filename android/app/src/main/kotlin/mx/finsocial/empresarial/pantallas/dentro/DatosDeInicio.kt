@@ -14,6 +14,7 @@ import mx.finsocial.empresarial.nucleo.api.LecturaDeCuenta
 import mx.finsocial.empresarial.nucleo.api.Orden
 import mx.finsocial.empresarial.nucleo.api.PaginaDeMovimientos
 import mx.finsocial.empresarial.nucleo.api.Usuario
+import mx.finsocial.empresarial.nucleo.spei.SpeiSinConfirmar
 
 /**
  * Lo que muestra Inicio (§3.3): cuenta, movimientos por mes y SPEI por
@@ -38,6 +39,14 @@ class DatosDeInicio(private val contenedor: Contenedor, val usuario: Usuario) {
         private set
     var error by mutableStateOf<String?>(null)
         private set
+
+    /**
+     * El SPEI sin confirmar (ver [SpeiSinConfirmar]). Vive en el contenedor para
+     * que sobreviva al bloqueo de la app.
+     */
+    var sinConfirmar: SpeiSinConfirmar?
+        get() = contenedor.speiSinConfirmar
+        set(v) { contenedor.speiSinConfirmar = v }
 
     /** Para que el saldo cuente desde 0 solo la primera vez. */
     var saldoYaAnimado = false

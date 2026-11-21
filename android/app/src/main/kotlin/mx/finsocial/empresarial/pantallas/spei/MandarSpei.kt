@@ -62,10 +62,12 @@ import mx.finsocial.empresarial.nucleo.api.Destino
 import mx.finsocial.empresarial.nucleo.api.FallaApi
 import mx.finsocial.empresarial.nucleo.api.Orden
 import mx.finsocial.empresarial.nucleo.api.PreparacionSpei
+import mx.finsocial.empresarial.nucleo.api.SinRed
 import mx.finsocial.empresarial.nucleo.api.SolicitudSpei
 import mx.finsocial.empresarial.nucleo.spei.Listas
 import mx.finsocial.empresarial.nucleo.spei.PedidoSpei
 import mx.finsocial.empresarial.pantallas.dentro.DatosDeInicio
+import mx.finsocial.empresarial.nucleo.spei.SpeiSinConfirmar
 import mx.finsocial.empresarial.ui.piezas.Aparicion
 import mx.finsocial.empresarial.ui.piezas.AvisoEnLinea
 import mx.finsocial.empresarial.ui.piezas.BotonPrincipal
@@ -93,7 +95,12 @@ private sealed interface PasoSpei {
 /** Mandar SPEI (§3.4): a quién, importe y concepto, revisar y resultado. */
 @Composable
 fun MandarSpei(contenedor: Contenedor, datos: DatosDeInicio, alTerminar: () -> Unit) {
-    var paso by remember { mutableStateOf<PasoSpei>(PasoSpei.Destinos) }
+    // Si hay un SPEI sin confirmar, se vuelve directo a él (no se prepara otro).
+    var paso by remember {
+        mutableStateOf<PasoSpei>(
+            datos.sinConfirmar?.let { s -> s.pedido.preparacion?.let { PasoSpei.Revisar(s.destino, s.pedido, it) } } ?: PasoSpei.Destinos,
+        )
+    }
     var importe by remember { mutableStateOf(TextFieldValue("")) }
     var concepto by remember { mutableStateOf("") }
     val reducir = LocalReducirMovimiento.current
@@ -103,7 +110,8 @@ fun MandarSpei(contenedor: Contenedor, datos: DatosDeInicio, alTerminar: () -> U
         when (val p = paso) {
             PasoSpei.Destinos, is PasoSpei.Resultado -> alTerminar()
             is PasoSpei.Importe -> paso = PasoSpei.Destinos
-            is PasoSpei.Revisar -> paso = PasoSpei.Importe(p.destino)
+            // Con un intento sin confirmar no se regresa a cambiar datos: se sale a Inicio.
+            is PasoSpei.Revisar -> if (p.pedido.tieneReintento) alTerminar() else paso = PasoSpei.Importe(p.destino)
         }
     }
     BackHandler(onBack = atras)
@@ -132,7 +140,12 @@ fun MandarSpei(contenedor: Contenedor, datos: DatosDeInicio, alTerminar: () -> U
                 alVolver = atras,
                 alRevisar = { pedido, prep -> paso = PasoSpei.Revisar(p.destino, pedido, prep) },
             )
-            is PasoSpei.Revisar -> Revisar(contenedor, p.destino, p.pedido, p.preparacion, alVolver = atras, alPedir = { paso = PasoSpei.Resultado(it) })
+            is PasoSpei.Revisar -> Revisar(
+                contenedor, p.destino, p.pedido, p.preparacion,
+                alVolver = atras,
+                alIntentar = { pendiente -> datos.sinConfirmar = if (pendiente) SpeiSinConfirmar(p.destino, p.pedido) else null },
+                alPedir = { paso = PasoSpei.Resultado(it) },
+            )
             is PasoSpei.Resultado -> ResultadoDeOrden(contenedor, p.orden, alListo = alTerminar)
         }
     }
@@ -342,6 +355,9 @@ private fun ImporteYConcepto(
 
 // ───── 3. Revisa tu SPEI ─────
 
+private const val SIN_CONFIRMAR =
+    "No supimos si llegó tu SPEI. Inténtalo otra vez: si ya había llegado, no se duplica."
+
 @Composable
 private fun Revisar(
     contenedor: Contenedor,
@@ -349,13 +365,14 @@ private fun Revisar(
     pedido: PedidoSpei,
     preparacion: PreparacionSpei,
     alVolver: () -> Unit,
+    alIntentar: (pendiente: Boolean) -> Unit,
     alPedir: (Orden) -> Unit,
 ) {
     val c = Finso.colores
     val alcance = rememberCoroutineScope()
     var cargando by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var reintento by remember { mutableStateOf(false) }
+    var reintento by remember { mutableStateOf(pedido.tieneReintento) }
+    var error by remember { mutableStateOf(if (pedido.tieneReintento) SIN_CONFIRMAR else null) }
     val r = preparacion.resumen
     val nombre = NombreLegible.de(r.destino.titular)
 
@@ -376,10 +393,13 @@ private fun Revisar(
                     alcance.launch {
                         try {
                             alPedir(pedido.pedir("Pedir SPEI de ${Dinero.pesos(r.importeCentavos)} a $nombre"))
+                        } catch (e: SinRed) {
+                            error = SIN_CONFIRMAR
                         } catch (e: Exception) {
                             error = textoDeFalla(contenedor, e)
                         } finally {
                             reintento = pedido.tieneReintento
+                            alIntentar(reintento)
                             cargando = false
                         }
                     }

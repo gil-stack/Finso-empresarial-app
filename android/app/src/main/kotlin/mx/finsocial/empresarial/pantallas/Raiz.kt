@@ -42,6 +42,11 @@ import mx.finsocial.empresarial.ui.tema.Movimiento
 fun Raiz(contenedor: Contenedor) {
     val estado by contenedor.sesion.estado.collectAsState()
     val apariencia by contenedor.apariencia.collectAsState()
+    // Un SPEI sin confirmar solo vale para la misma persona y la misma empresa:
+    // al salir, cambiar de cuenta o elegir empresa se olvida.
+    LaunchedEffect(estado) {
+        if (estado !is EstadoSesion.Dentro && estado !is EstadoSesion.Bloqueada) contenedor.speiSinConfirmar = null
+    }
     LaunchedEffect(Unit) { contenedor.sesion.arrancar() }
 
     val oscuro = when (apariencia) {
