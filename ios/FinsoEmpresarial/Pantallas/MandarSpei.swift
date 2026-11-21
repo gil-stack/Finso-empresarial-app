@@ -160,6 +160,11 @@ struct FilaDeDestino: View {
 struct ImporteYConcepto: View {
     let envio: EnvioSpei
     @FocusState private var enfocado: Campo?
+    // Copias locales de lo tecleado: un TextField con Binding que transforma
+    // el valor no siempre repinta lo limpio (la ñ se quedaba en pantalla).
+    // Se limpian en onChange y se escriben de vuelta, que sí repinta.
+    @State private var importe = ""
+    @State private var concepto = ""
 
     enum Campo { case importe, concepto }
 
@@ -183,7 +188,7 @@ struct ImporteYConcepto: View {
                         .foregroundStyle(Finso.secundario)
                     TextField(
                         "0",
-                        text: Binding(get: { envio.importeTecleado }, set: { envio.teclearImporte($0) })
+                        text: $importe
                     )
                     .keyboardType(.decimalPad)
                     .font(Letra.gully(tamano, .bold, relativoA: .largeTitle))
@@ -193,6 +198,10 @@ struct ImporteYConcepto: View {
                     .focused($enfocado, equals: .importe)
                     .accessibilityLabel("Importe")
                     .accessibilityIdentifier("importe")
+                    .onChange(of: importe) { _, nuevo in
+                        envio.teclearImporte(nuevo)
+                        if envio.importeTecleado != nuevo { importe = envio.importeTecleado }
+                    }
                 }
                 .frame(maxWidth: .infinity)
                 .animation(Ritmo.rapido, value: tamano)
@@ -217,7 +226,7 @@ struct ImporteYConcepto: View {
                         .foregroundStyle(Finso.secundario)
                 }
                 TextField(
-                    "", text: Binding(get: { envio.concepto }, set: { envio.teclearConcepto($0) })
+                    "", text: $concepto
                 )
                 .font(Letra.cuerpoGrande)
                 .foregroundStyle(Finso.texto)
@@ -229,6 +238,10 @@ struct ImporteYConcepto: View {
                 .background(Finso.elevado, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .accessibilityLabel("Concepto")
                 .accessibilityIdentifier("concepto")
+                .onChange(of: concepto) { _, nuevo in
+                    envio.teclearConcepto(nuevo)
+                    if envio.concepto != nuevo { concepto = envio.concepto }
+                }
                 Text("Sin acentos ni ñ (así lo pide SPEI).")
                     .font(Letra.chica)
                     .foregroundStyle(Finso.secundario)
@@ -248,7 +261,11 @@ struct ImporteYConcepto: View {
                 Button("Listo") { enfocado = enfocado == .importe ? .concepto : nil }
             }
         }
-        .onAppear { enfocado = .importe }
+        .onAppear {
+            importe = envio.importeTecleado
+            concepto = envio.concepto
+            enfocado = .importe
+        }
     }
 }
 
