@@ -15,6 +15,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.annotation.DrawableRes
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -185,6 +186,7 @@ class SpeiEnVivo(private val contexto: Context, private val reloj: () -> Instant
     }
 
     /** Android 16: Live Update con barra de avance en tres partes (pedido, liberado, enviado). */
+    @RequiresApi(36)
     private fun enVivo16(s: SeguimientoDeOrden, v: VistaDeAviso): Notification {
         val b = Notification.Builder(contexto, CANAL)
             .setSmallIcon(icono(v.simbolo))
