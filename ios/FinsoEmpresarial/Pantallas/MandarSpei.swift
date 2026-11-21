@@ -316,7 +316,11 @@ struct RevisarSpei: View {
             Button {
                 Task { await envio.pedir() }
             } label: {
-                Label("Pedir con \(Biometria.nombre)", systemImage: Biometria.simbolo)
+                if envio.sinConfirmar {
+                    Label("Reintentar", systemImage: "arrow.clockwise")
+                } else {
+                    Label("Pedir con \(Biometria.nombre)", systemImage: Biometria.simbolo)
+                }
             }
             .buttonStyle(.principal(cargando: envio.ocupado))
             .accessibilityIdentifier("pedir")

@@ -54,8 +54,19 @@ public final class EnvioSpei {
     @ObservationIgnored let esperar: @Sendable (TimeInterval) async -> Void
     /// Disponible para comparar (nil si la persona no ve saldo).
     @ObservationIgnored public let disponible: Int?
-    /// Llave y firma del reto vigente (se reusan si falla la red).
-    @ObservationIgnored private var intento: (llave: String, firma: String)?
+    /// Lo que ya se firmó: si falla la red, el reintento manda exactamente
+    /// esto (misma llave de idempotencia, reto y firma). Mientras exista no se
+    /// arma otro pedido, para que no queden dos órdenes por liberar.
+    private struct Intento: Equatable {
+        let llave: String
+        let firma: String
+        let reto: String
+        let solicitud: SolicitudSpei
+    }
+    private var intento: Intento?
+
+    /// Hay un SPEI firmado cuya respuesta no llegó (se cayó la red).
+    public var sinConfirmar: Bool { intento != nil }
 
     public init(
         api: FinsoApi, almacen: AlmacenDeSesion, llave: LlaveDelDispositivo, disponible: Int?,
@@ -163,11 +174,24 @@ public final class EnvioSpei {
     /// «Revisar»: `POST /spei/preparar`.
     public func revisar() async {
         guard puedeRevisar, let s = solicitud else { return }
+        if let i = intento {
+            // Ya hay uno firmado sin respuesta: se reintenta ese, no otro.
+            if i.solicitud == s {
+                error = nil
+                paso = .revisar
+            } else {
+                error = Self.avisoSinConfirmar(i.solicitud)
+            }
+            return
+        }
         await trabajar {
             preparacion = try await api.prepararSpei(s)
-            intento = nil
             paso = .revisar
         }
+    }
+
+    static func avisoSinConfirmar(_ s: SolicitudSpei) -> String {
+        "Tu SPEI de \(Dinero.pesos(s.importeCentavos)) no se confirmó por la red. Reintenta mandarlo antes de pedir otro."
     }
 
     // MARK: 3. Revisar y firmar
@@ -179,9 +203,9 @@ public final class EnvioSpei {
 
     /// «Pedir con Face ID». Si el reto venció o se gastó, prepara otro.
     public func pedir() async {
-        guard let s = solicitud, let dispositivo = almacen.dispositivo() else { return }
+        guard let s = intento?.solicitud ?? solicitud, let dispositivo = almacen.dispositivo() else { return }
         await trabajar {
-            if preparacion == nil || preparacion!.expiraEn <= reloj() {
+            if intento == nil, preparacion == nil || preparacion!.expiraEn <= reloj() {
                 preparacion = try await api.prepararSpei(s)
                 intento = nil
             }
@@ -191,11 +215,12 @@ public final class EnvioSpei {
                     dispositivo: dispositivo, reto: p.reto, destino: s.destino, importeCentavos: s.importeCentavos,
                     concepto: s.concepto)
                 let firma = try await llave.firmar(texto, motivo: motivoDeFirma)
-                intento = (nuevaLlaveDeIdempotencia(), firma)
+                intento = Intento(llave: nuevaLlaveDeIdempotencia(), firma: firma, reto: p.reto, solicitud: s)
             }
             guard let i = intento else { return }
             do {
-                orden = try await api.mandarSpei(s, reto: p.reto, firma: i.firma, llaveDeIdempotencia: i.llave)
+                orden = try await api.mandarSpei(
+                    i.solicitud, reto: i.reto, firma: i.firma, llaveDeIdempotencia: i.llave)
                 intento = nil
                 paso = .resultado
             } catch let e as ErrorFinso where !e.esSinRed {

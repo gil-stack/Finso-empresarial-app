@@ -211,4 +211,64 @@ final class OperacionTests: XCTestCase {
         XCTAssertEqual(mandados[0].encabezados["Idempotency-Key"], mandados[1].encabezados["Idempotency-Key"])
         XCTAssertEqual(mandados[0].cuerpo, mandados[1].cuerpo)
     }
+
+    /// Si se cae la red y la persona regresa y vuelve a «Revisar», no se arma
+    /// otro pedido (otra llave): se reintenta el mismo, y uno distinto se
+    /// detiene hasta que el primero se confirme. Así no quedan dos por liberar.
+    func testRegresarTrasFallaDeRedNoArmaOtroPedido() async {
+        let almacen = AlmacenEnMemoria()
+        almacen.guardar(Sesion(
+            acceso: "a", accesoExpiraEn: Date() + 600, renovacion: "r", renovacionExpiraEn: Date() + 3600))
+        almacen.guardarDispositivo("dev_1")
+        let destino: Json = ["id": "dst_1", "titular": "PAPELERA", "clabeFinal": "4821"]
+        let prep: Json = [
+            "reto": "s1", "expiraEn": Iso.texto(Date() + 120),
+            "resumen": ["destino": destino, "importeCentavos": 1_000, "concepto": "Pago"] as Json,
+        ]
+        let orden: Json = [
+            "id": "spo_1", "estado": "POR_LIBERAR", "destino": destino,
+            "importeCentavos": 1_000, "concepto": "Pago", "referenciaNumerica": 7, "pedidaPor": "Luis",
+            "creadaEn": Iso.texto(Date()), "actualizadaEn": Iso.texto(Date()), "version": 1,
+        ]
+        let destinos: Json = ["elementos": [
+            ["id": "dst_1", "titular": "PAPELERA", "tipo": "PROVEEDOR", "clabeFinal": "4821", "estado": "ACTIVO",
+             "activoDesde": Iso.texto(Date() - 86_400)] as Json,
+        ]]
+        let t = TransporteFalso([(200, destinos), (200, prep)])
+        let api = ApiHttp(almacen: almacen, base: URL(string: "https://x.mx/movil/v1")!, version: "1", transporte: t)
+        let llave = LlaveSimulada(existe: true)
+        let e = EnvioSpei(api: api, almacen: almacen, llave: llave, disponible: nil, esperar: { _ in })
+        await e.cargarDestinos()
+        e.elegir(e.destinos[0])
+        e.teclearImporte("10")
+        e.teclearConcepto("Pago")
+        await e.revisar()
+        await e.pedir()  // se cae la red
+        XCTAssertTrue(e.sinConfirmar)
+
+        // Regresa, cambia el importe y vuelve a «Revisar»: se detiene.
+        e.regresar()
+        XCTAssertEqual(e.paso, .importe)
+        e.teclearImporte("100")
+        await e.revisar()
+        XCTAssertEqual(e.paso, .importe)
+        XCTAssertEqual(e.error, EnvioSpei.avisoSinConfirmar(SolicitudSpei(destino: "dst_1", importeCentavos: 1_000, concepto: "Pago")))
+
+        // Lo deja como estaba: vuelve a revisar sin preparar otro reto.
+        e.teclearImporte("10")
+        await e.revisar()
+        XCTAssertEqual(e.paso, .revisar)
+        XCTAssertNil(e.error)
+
+        t.respuestas = [(201, orden)]
+        await e.pedir()
+        XCTAssertEqual(e.paso, .resultado)
+        XCTAssertFalse(e.sinConfirmar)
+        XCTAssertEqual(llave.firmados.count, 1, "Una sola firma")
+        XCTAssertEqual(t.pedidos.filter { $0.url.path.hasSuffix("/spei/preparar") }.count, 1, "Un solo reto")
+        let mandados = t.pedidos.filter { $0.url.path.hasSuffix("/spei") }
+        XCTAssertEqual(mandados.count, 2)
+        XCTAssertEqual(mandados[0].encabezados["Idempotency-Key"], mandados[1].encabezados["Idempotency-Key"])
+        XCTAssertEqual(mandados[0].cuerpo, mandados[1].cuerpo)
+    }
 }
