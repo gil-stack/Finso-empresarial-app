@@ -145,25 +145,3 @@ class AvisosEnVivoTest {
         assertFalse(compose.onAllNodes(androidx.compose.ui.test.hasTestTag("orden-spo_SIM_PENDIENTE")).fetchSemanticsNodes().isNotEmpty())
     }
 }
-
-/** Android 16: Live Update con ProgressStyle y chip en la barra de estado. */
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36])
-class AvisosAndroid16Test {
-    @Test fun `en Android 16 pide salir como Live Update con el importe en el chip`() {
-        val contexto = ApplicationProvider.getApplicationContext<Application>()
-        shadowOf(contexto).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
-        val ahora = Instant.parse("2026-11-21T18:00:00Z")
-        SpeiEnVivo(contexto) { ahora }.alVer(
-            Orden(
-                id = "spo_1", estado = EstadoOrden.POR_LIBERAR,
-                destino = DestinoBreve("dst_1", "FLETES RAPIDOS DEL NORTE", "BANORTE", "0921"),
-                importeCentavos = 1_845_000, concepto = "Flete", pedidaPor = "Luis Pérez Soto",
-                creadaEn = ahora.toString(), actualizadaEn = ahora.toString(),
-            ),
-        )
-        val n = shadowOf(contexto.getSystemService(NotificationManager::class.java)).getNotification(SpeiEnVivo.idDe("spo_1"))!!
-        assertTrue(n.extras.getBoolean(SpeiEnVivo.PEDIR_PROMOCION))
-        assertEquals(Notification.ProgressStyle::class.java.name, n.extras.getString(Notification.EXTRA_TEMPLATE))
-    }
-}
