@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fondo del ícono: el degradado de acceso, de petróleo a casi negro. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:angle="315"
+        android:startColor="#FF17494B"
+        android:endColor="#FF061518"
+        android:type="linear" />
+</shape>

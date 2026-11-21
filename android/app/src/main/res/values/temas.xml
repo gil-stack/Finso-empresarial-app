@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Pantalla de arranque: el fondo oscuro de acceso con «finso» al centro,
+         para que el paso a la bienvenida sea un fundido sin parpadeo. -->
+    <style name="Tema.Finso.Arranque" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/acceso_base</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/icono_arranque</item>
+        <item name="postSplashScreenTheme">@style/Tema.Finso</item>
+    </style>
+
+    <style name="Tema.Finso" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/acceso_base</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>
