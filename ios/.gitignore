@@ -1,0 +1,9 @@
+# Generado por XcodeGen en el CI
+*.xcodeproj/
+build/
+.build/
+.swiftpm/
+DerivedData/
+xcuserdata/
+*.xcresult
+.DS_Store

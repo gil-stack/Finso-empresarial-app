@@ -1,0 +1,84 @@
+# Pruebas del iPhone en cada PR. Para cuidar los minutos de macOS (cuestan 10×
+# los de Linux): solo corre si cambia ios/ o este flujo, el núcleo se prueba
+# primero en Linux y la Mac solo arranca si el núcleo pasó.
+name: iPhone · pruebas
+
+on:
+  pull_request:
+    paths: ["ios/**", ".github/workflows/ios-pruebas.yml"]
+  push:
+    branches: [main]
+    paths: ["ios/**", ".github/workflows/ios-pruebas.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: ios-pruebas-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  nucleo:
+    name: Núcleo (Linux)
+    runs-on: ubuntu-latest
+    container: swift:6.0-jammy
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pruebas del núcleo
+        working-directory: ios/FinsoNucleo
+        run: swift test --parallel
+
+  app:
+    name: App en simulador (macOS)
+    needs: nucleo
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Elegir Xcode 26 (Liquid Glass)
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$XCODE" ]; then sudo xcode-select -s "$XCODE"; fi
+          xcodebuild -version
+      - name: Generar el proyecto
+        working-directory: ios
+        run: |
+          brew install xcodegen >/dev/null
+          xcodegen generate
+      - name: Elegir simulador
+        id: sim
+        run: |
+          ID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          d = json.load(sys.stdin)["devices"]
+          ios = sorted((k for k in d if "iOS" in k), key=lambda k: [int(x) for x in k.split("iOS-")[1].split("-")])
+          for rt in reversed(ios):
+              for dev in d[rt]:
+                  if dev["name"].startswith("iPhone") and "Pro" in dev["name"] and "Max" not in dev["name"]:
+                      print(dev["udid"]); sys.exit()
+          ')
+          echo "id=$ID" >> "$GITHUB_OUTPUT"
+          xcrun simctl list devices available | grep "$ID"
+      - name: Compilar y probar
+        working-directory: ios
+        run: |
+          mkdir -p build
+          set +e
+          xcodebuild test \
+            -project FinsoEmpresarial.xcodeproj -scheme FinsoEmpresarial \
+            -destination "id=${{ steps.sim.outputs.id }}" \
+            -resultBundlePath build/Pruebas.xcresult > build/xcodebuild.log 2>&1
+          codigo=$?
+          grep -E "error:|Test Case .* (passed|failed)|Executed|\*\* (TEST|BUILD)" build/xcodebuild.log | tail -150
+          exit $codigo
+      - name: Guardar resultados si falla
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-pruebas
+          path: |
+            ios/build/xcodebuild.log
+            ios/build/Pruebas.xcresult
+          retention-days: 5
