@@ -68,6 +68,7 @@ class DatosDeInicio(private val contenedor: Contenedor, val usuario: Usuario) {
                 cuenta?.let { lectura = it.await() }
                 mes?.let { val m = it.await(); meses.clear(); meses.add(m) }
                 pendientes?.let { porLiberar = it.await() }
+                contenedor.sistema.alContarPorLiberar(porLiberar.size, permisos.liberarSpei)
             }
         } catch (e: FallaApi) {
             error = e.texto

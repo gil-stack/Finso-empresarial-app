@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="widget_fondo">#FFFFFF</color>
+    <color name="widget_texto">#0B2B2E</color>
+    <color name="finso_tinta_widget">#0B2B2E</color>
+    <string name="widget_descripcion">SPEI por liberar y Mandar SPEI. No muestra saldo.</string>
+</resources>

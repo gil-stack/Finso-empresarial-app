@@ -39,6 +39,7 @@ import mx.finsocial.empresarial.nucleo.NombreLegible
 import mx.finsocial.empresarial.nucleo.api.EstadoOrden
 import mx.finsocial.empresarial.nucleo.api.FallaApi
 import mx.finsocial.empresarial.nucleo.api.Orden
+import mx.finsocial.empresarial.sistema.PedirAvisos
 import mx.finsocial.empresarial.ui.piezas.Aparicion
 import mx.finsocial.empresarial.ui.piezas.BotonPrincipal
 import mx.finsocial.empresarial.ui.piezas.Hapticos
@@ -75,6 +76,8 @@ fun ResultadoDeOrden(contenedor: Contenedor, inicial: Orden, alListo: () -> Unit
             try { orden = contenedor.api.orden(orden.id) } catch (_: FallaApi) { /* se vuelve a intentar */ }
         }
     }
+    PedirAvisos(contenedor)
+    LaunchedEffect(orden.estado, orden.actualizadaEn) { contenedor.sistema.alVerOrden(orden) }
     LaunchedEffect(orden.estado) {
         when (orden.estado) {
             EstadoOrden.LIQUIDADA, EstadoOrden.POR_LIBERAR -> Hapticos.exito(vista)

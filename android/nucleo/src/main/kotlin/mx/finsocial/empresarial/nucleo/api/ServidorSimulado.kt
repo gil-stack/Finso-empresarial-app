@@ -207,6 +207,7 @@ class ServidorSimulado(
                     m == "GET" && ruta == "movimientos" -> { exigir(s, empresa) { it.verCuenta }; movimientosDe(req.url.queryParameter("mes") ?: Fechas.mesActual(ahora)) }
                     m == "GET" && ruta == "destinos" -> { exigir(s, empresa) { it.verDestinos }; ok(ListaDeDestinos.serializer(), ListaDeDestinos(destinosVivos())) }
                     m == "POST" && ruta == "spei/preparar" -> prepararSpei(s, empresa, leer(req, SolicitudSpei.serializer()))
+                    m == "POST" && ruta == "avisos/actividad" -> registrarAviso(s, empresa, req)
                     m == "POST" && ruta == "spei" -> pedirSpei(s, empresa, req)
                     m == "GET" && ruta == "spei" -> listaOrdenes(s, empresa, req.url.queryParameter("estado"))
                     m == "GET" && partes.size == 2 && partes[0] == "spei" -> { exigir(s, empresa) { it.verOrdenes }; ok(Orden.serializer(), vista(ordenDe(partes[1]), s.correo)) }
@@ -483,6 +484,23 @@ class ServidorSimulado(
         ordenes[idOrden] = OrdenSim(o, s.correo)
         porLlave[req.header("Idempotency-Key")!!] = crudo to idOrden
         return ok(Orden.serializer(), vista(ordenes.getValue(idOrden), s.correo), http = 201)
+    }
+
+    /** Órdenes con aviso en vivo pedido (§5.1), por orden: el token FCM. Para pruebas. */
+    val avisosRegistrados = linkedMapOf<String, String>()
+
+    private fun registrarAviso(s: SesionViva, empresa: String?, req: Request): Pair<Int, String> {
+        val p = leer(req, PeticionAviso.serializer())
+        if (p.plataforma != "android" && p.plataforma != "ios") throw FallaSim(400, "DATOS_INVALIDOS")
+        if (p.token.length !in 32..4096) throw FallaSim(400, "DATOS_INVALIDOS")
+        val u = exigir(s, empresa) { it.pedirSpei || it.liberarSpei }
+        val o = ordenDe(p.orden)
+        if (o.pidioCorreo != s.correo && !u.permisos.liberarSpei) throw FallaSim(403, "SIN_PERMISO")
+        if (!o.orden.esFinal) {
+            avisosRegistrados[p.orden] = p.token
+            while (avisosRegistrados.size > 3) avisosRegistrados.remove(avisosRegistrados.keys.first())
+        }
+        return 204 to ""
     }
 
     private fun ordenDe(id: String): OrdenSim {
