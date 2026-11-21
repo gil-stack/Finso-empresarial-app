@@ -62,6 +62,9 @@ public protocol FinsoApi: AnyObject, Sendable {
     /// El mismo reto sirve para liberar o para rechazar.
     func prepararLiberacion(_ orden: String) async throws -> PreparacionDeLiberacion
     func liberar(orden: String, reto: String, firma: String, llaveDeIdempotencia: String) async throws -> Orden
+    // §5.1 (v1.2): token de la actividad en vivo de una orden.
+    func avisarActividad(orden: String, token: String) async throws
+
     func rechazar(
         orden: String, motivo: String, reto: String, firma: String, llaveDeIdempotencia: String
     ) async throws -> Orden

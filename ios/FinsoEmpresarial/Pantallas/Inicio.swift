@@ -76,6 +76,12 @@ struct Inicio: View {
         }
         .tint(Finso.acento)
         .task { if !datos.yaCargo { await datos.refrescar() } }
+        .onChange(of: app.ordenPorAbrir, initial: true) { _, ref in
+            guard let ref else { return }
+            app.ordenPorAbrir = nil
+            mandar = false
+            ruta = [.orden(ref)]
+        }
         .sheet(isPresented: $ajustes) {
             Ajustes(app: app, usuario: usuario)
                 .presentationDetents([.medium, .large])

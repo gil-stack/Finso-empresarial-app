@@ -54,3 +54,17 @@ final class AppTests: XCTestCase {
         XCTAssertEqual(hex, "3059301306072a8648ce3d020106082a8648ce3d030107034200")
     }
 }
+
+@MainActor
+final class EnlaceTests: XCTestCase {
+    func testLaActividadAbreSuOrden() {
+        let app = EstadoDeLaApp()
+        let url = ActividadSpei.enlace("spo_SIM_PENDIENTE")
+        XCTAssertEqual(url.absoluteString, "finso-empresarial://orden?ref=spo_SIM_PENDIENTE")
+        app.abrir(url)
+        XCTAssertEqual(app.ordenPorAbrir, "spo_SIM_PENDIENTE")
+        app.ordenPorAbrir = nil
+        app.abrir(URL(string: "finso-empresarial://orden?ref=../yo")!)
+        XCTAssertNil(app.ordenPorAbrir)
+    }
+}

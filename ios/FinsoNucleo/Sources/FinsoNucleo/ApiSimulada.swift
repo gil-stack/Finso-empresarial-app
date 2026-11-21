@@ -504,6 +504,14 @@ public final class ApiSimulada: FinsoApi, @unchecked Sendable {
         }
     }
 
+    /// La simulada no manda push: la actividad se actualiza con la app abierta.
+    public func avisarActividad(orden: String, token: String) async throws {
+        try await contestar {
+            try permiso("verOrdenes")
+            _ = try self.orden(json: orden)
+        }
+    }
+
     /// En la simulada el SPEI se liquida `liquidaEn` segundos después de salir.
     private func programarLiquidacion(_ id: String) {
         let espera = liquidaEn

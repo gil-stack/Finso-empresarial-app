@@ -28,9 +28,16 @@ targets:
       Release: Config/Release.xcconfig
     sources:
       - path: FinsoEmpresarial
+      - path: Compartido
     dependencies:
       - package: FinsoNucleo
+      - target: IslaDinamica
     settings:
+      configs:
+        # El permiso de push solo al firmar de verdad (TestFlight); el
+        # simulador del CI firma sin equipo.
+        Release:
+          CODE_SIGN_ENTITLEMENTS: Config/FinsoEmpresarial.entitlements
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(APP_ID)
         PRODUCT_NAME: FinsoEmpresarial
@@ -56,6 +63,10 @@ targets:
         UIApplicationSupportsIndirectInputEvents: true
         UIRequiresFullScreen: true
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        NSSupportsLiveActivities: true
+        CFBundleURLTypes:
+          - CFBundleURLName: $(APP_ID)
+            CFBundleURLSchemes: [finso-empresarial]
         NSFaceIDUsageDescription: "Para entrar y firmar tus operaciones con Face ID."
         UIAppFonts:
           - Gully-Medium.ttf
@@ -67,6 +78,27 @@ targets:
           - WantedSansStd-Bold.ttf
         FinsoApi: $(FINSO_API)
         FinsoApiUrl: $(FINSO_API_URL)
+  IslaDinamica:
+    type: app-extension
+    platform: iOS
+    configFiles:
+      Debug: Config/Debug.xcconfig
+      Release: Config/Release.xcconfig
+    sources:
+      - path: IslaDinamica
+      - path: Compartido
+    dependencies:
+      - package: FinsoNucleo
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_ID).isla
+        PRODUCT_NAME: IslaDinamica
+        INFOPLIST_FILE: IslaDinamica/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_STYLE: Automatic
+        "CODE_SIGN_IDENTITY[sdk=iphonesimulator*]": "-"
+        SKIP_INSTALL: YES
+        APPLICATION_EXTENSION_API_ONLY: YES
   FinsoEmpresarialTests:
     type: bundle.unit-test
     platform: iOS

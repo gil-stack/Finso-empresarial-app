@@ -299,4 +299,11 @@ public final class ApiHttp: FinsoApi, @unchecked Sendable {
             "POST", "/spei/\(Self.ruta(orden))/rechazar", cuerpo: ["motivo": motivo, "reto": reto, "firma": firma],
             idempotencia: llaveDeIdempotencia))
     }
+
+    // MARK: §5 Avisos
+
+    public func avisarActividad(orden: String, token: String) async throws {
+        try await pedir(
+            "POST", "/avisos/actividad", cuerpo: ["orden": orden, "plataforma": plataforma, "token": token])
+    }
 }
