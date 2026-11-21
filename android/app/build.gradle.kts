@@ -16,6 +16,8 @@ val apiForzada = providers.gradleProperty("finso.api").orNull
 val apiUrl = providers.gradleProperty("finso.apiUrl").orNull ?: "https://empresas.finsocial.app/movil/v1"
 // Para las capturas de tienda se quita el bloqueo de capturas: -Pfinso.capturas=true.
 val modoCapturas = providers.gradleProperty("finso.capturas").orNull == "true"
+// Emulador del CI sin huella: llave en software, solo con datos simulados.
+val huellaSimulada = providers.gradleProperty("finso.huellaSimulada").orNull == "true"
 
 android {
     namespace = "mx.finsocial.empresarial"
@@ -30,6 +32,7 @@ android {
         resValue("string", "app_nombre", appNombre)
         buildConfigField("String", "FINSO_API_URL", "\"$apiUrl\"")
         buildConfigField("boolean", "MODO_CAPTURAS", modoCapturas.toString())
+        buildConfigField("boolean", "HUELLA_SIMULADA", huellaSimulada.toString())
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -85,6 +88,13 @@ android {
         }
     }
 
+    // Los pasos del recorrido se comparten entre las pruebas de pantallas
+    // (Robolectric) y el recorrido en emulador.
+    sourceSets {
+        getByName("test").java.srcDir("src/compartido/kotlin")
+        getByName("androidTest").java.srcDir("src/compartido/kotlin")
+    }
+
     packaging {
         resources.excludes += setOf("/META-INF/{AL2.0,LGPL2.1}", "/META-INF/LICENSE*", "/META-INF/versions/9/OSGI-INF/MANIFEST.MF")
     }
@@ -116,6 +126,7 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.process)
     implementation(libs.biometric)
+    implementation(libs.fragment)
     implementation(libs.coroutines.android)
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)
@@ -129,4 +140,11 @@ dependencies {
     testImplementation(libs.androidx.test.core)
     testImplementation(platform(libs.compose.bom))
     testImplementation(libs.compose.ui.test.junit4)
+
+    // Recorrido en emulador (GitHub Actions).
+    androidTestImplementation(platform(libs.compose.bom))
+    androidTestImplementation(libs.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.junit)
 }

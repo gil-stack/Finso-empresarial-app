@@ -2,14 +2,16 @@ package mx.finsocial.empresarial
 
 import android.os.Bundle
 import android.view.WindowManager
-import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import mx.finsocial.empresarial.pantallas.Bienvenida
+import androidx.fragment.app.FragmentActivity
+import mx.finsocial.empresarial.pantallas.Raiz
+import java.lang.ref.WeakReference
 
-class MainActivity : ComponentActivity() {
+/** La única pantalla de la app; todo lo demás son pantallas de Compose. */
+class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
@@ -23,9 +25,17 @@ class MainActivity : ComponentActivity() {
             statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
         )
-        setContent {
-            // El flujo de acceso llega en el siguiente PR; por ahora, la bienvenida.
-            Bienvenida(alEntrar = {})
-        }
+        val contenedor = (application as FinsoApp).contenedor
+        setContent { Raiz(contenedor) }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Contenedor.actividad = WeakReference(this)
+    }
+
+    override fun onDestroy() {
+        if (Contenedor.actividad.get() === this) Contenedor.actividad = WeakReference(null)
+        super.onDestroy()
     }
 }
