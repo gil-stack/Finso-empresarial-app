@@ -163,7 +163,7 @@ class AvisosAndroid16Test {
             ),
         )
         val n = shadowOf(contexto.getSystemService(NotificationManager::class.java)).getNotification(SpeiEnVivo.idDe("spo_1"))!!
-        assertTrue(n.extras.getBoolean(Notification.EXTRA_REQUEST_PROMOTED_ONGOING))
+        assertTrue(n.extras.getBoolean(SpeiEnVivo.PEDIR_PROMOCION))
         assertEquals(Notification.ProgressStyle::class.java.name, n.extras.getString(Notification.EXTRA_TEMPLATE))
     }
 }

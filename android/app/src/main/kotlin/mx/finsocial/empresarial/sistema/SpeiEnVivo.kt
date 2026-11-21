@@ -13,6 +13,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import androidx.annotation.DrawableRes
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -32,7 +33,7 @@ import java.time.Instant
  * La notificación en vivo de cada SPEI (§11, «Android: equivalente»).
  *
  * - En Android 16 es un «Live Update»: `ProgressStyle` con
- *   `setRequestPromotedOngoing`, que sale como chip en la barra de estado con
+ *   la petición de «promoted ongoing», que sale como chip en la barra de estado con
  *   el importe.
  * - Antes, una notificación en curso con barra de avance.
  * - En la pantalla bloqueada solo dice «SPEI en proceso».
@@ -43,6 +44,9 @@ class SpeiEnVivo(private val contexto: Context, private val reloj: () -> Instant
     companion object {
         const val CANAL = "spei-en-vivo"
         const val ACCION_VIEJO = "mx.finsocial.empresarial.AVISO_VIEJO"
+
+        /** `Notification.EXTRA_REQUEST_PROMOTED_ONGOING` de Android 16. */
+        const val PEDIR_PROMOCION = "android.requestPromotedOngoing"
         private const val PREFERENCIAS = "finso.avisos"
         private const val CLAVE = "seguimientos"
         private val serie = ListSerializer(SeguimientoDeOrden.serializer())
@@ -207,8 +211,10 @@ class SpeiEnVivo(private val contexto: Context, private val reloj: () -> Instant
                     ),
                 )
                 .setProgress(v.avance * 100)
+            // Pide salir como Live Update. El SDK con el que compilamos no trae el método
+            // `setRequestPromotedOngoing`, pero el sistema lee este mismo dato.
             b.setStyle(estilo)
-                .setRequestPromotedOngoing(true)
+                .addExtras(Bundle().apply { putBoolean(PEDIR_PROMOCION, true) })
                 .setShortCriticalText(s.importe)
         } else {
             b.setTimeoutAfter(Avisos.DESPUES_DEL_FINAL.toMillis())
