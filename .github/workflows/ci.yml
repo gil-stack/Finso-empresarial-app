@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Una sola corrida por rama: si llega otro push, la anterior se cancela (menos en main).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  revisar:
+    name: Formato, análisis y pruebas
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.50.1
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Formato
+        run: dart format --output=none --set-exit-if-changed lib test
+      - name: Análisis
+        run: flutter analyze
+      - name: Pruebas
+        run: flutter test
+
+  android:
+    name: Compila Android (debug)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Solo compila cuando cambia algo nativo (android/, config/, dependencias):
+    # si no, el trabajo termina en segundos y el CI normal queda en ~2 min.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: cambios
+        with:
+          filters: |
+            nativo:
+              - 'android/**'
+              - 'config/**'
+              - 'pubspec.yaml'
+              - 'pubspec.lock'
+              - '.github/workflows/**'
+      - uses: actions/setup-java@v4
+        if: steps.cambios.outputs.nativo == 'true'
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: subosito/flutter-action@v2
+        if: steps.cambios.outputs.nativo == 'true'
+        with:
+          flutter-version: 3.50.1
+          channel: stable
+          cache: true
+      - name: Compilar APK de prueba
+        if: steps.cambios.outputs.nativo == 'true'
+        run: flutter build apk --debug
+      - name: Revisar el identificador de la tienda
+        if: steps.cambios.outputs.nativo == 'true'
+        run: |
+          esperado=$(sed -n 's/^APP_ID *= *//p' config/Identidad.xcconfig)
+          aapt=$(ls "$ANDROID_HOME"/build-tools/*/aapt | tail -1)
+          real=$("$aapt" dump badging build/app/outputs/flutter-apk/app-debug.apk | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
+          echo "esperado=$esperado real=$real"
+          test "$esperado" = "$real"

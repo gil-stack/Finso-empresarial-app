@@ -1,0 +1,49 @@
+name: finso_empresarial
+description: "Finso Empresarial: la banca de tu empresa en el teléfono."
+publish_to: 'none'
+
+# versión visible + número de build (el build sube en cada envío a tiendas).
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.14.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  material_ui: ^1.11.1
+  cupertino_ui: ^1.1.7
+  cupertino_icons: ^1.0.8
+  http: ^1.2.2
+  provider: ^6.1.2
+  shared_preferences: ^2.5.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/marca/
+  fonts:
+    # Gully en títulos y botones; Wanted Sans en texto (las dos con licencia OFL).
+    - family: Gully
+      fonts:
+        - asset: assets/fonts/Gully-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Gully-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Gully-Bold.ttf
+          weight: 700
+    - family: WantedSans
+      fonts:
+        - asset: assets/fonts/WantedSansStd-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/WantedSansStd-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/WantedSansStd-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/WantedSansStd-Bold.ttf
+          weight: 700

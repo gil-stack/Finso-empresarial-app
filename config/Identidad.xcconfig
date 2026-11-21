@@ -1,0 +1,10 @@
+// Identidad de la app en las tiendas. ÚNICO lugar donde se cambia.
+// Lo leen iOS (Xcode, vía ios/Flutter/*.xcconfig) y Android (android/app/build.gradle.kts).
+//
+// APP_ID es el identificador que Apple llama «Bundle ID» y Google «applicationId».
+// Una vez publicada la app en una tienda ya NO se puede cambiar: confirma que esté
+// libre en App Store Connect y Google Play Console antes de registrarlo.
+// finsocial-v2 usa mx.financiera.fin_social, mx.financiera.finsocial y mx.finso.demo;
+// este no choca con ninguno.
+APP_ID = mx.finsocial.empresarial
+APP_NOMBRE = Finso Empresarial
