@@ -1,0 +1,74 @@
+# Recorrido completo de la app Android en un emulador (Android 14) dentro de
+# GitHub Actions, con datos simulados. Las fotos de cada pantalla quedan en el
+# artefacto «recorrido-android».
+name: Android · recorrido en emulador
+
+on:
+  pull_request:
+    paths:
+      - "android/**"
+      - ".github/workflows/android-recorrido.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: android-recorrido-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  recorrido:
+    name: Recorrido en emulador
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
+
+      - name: Permitir KVM (emulador rápido)
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Armar la app y el recorrido
+        working-directory: android
+        run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest -Pfinso.huellaSimulada=true -Pfinso.capturas=true
+
+      - name: Correr el recorrido en el emulador
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: false
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          working-directory: android
+          script: ./gradlew :app:connectedDebugAndroidTest -Pfinso.huellaSimulada=true -Pfinso.capturas=true || touch ../recorrido-fallo
+
+      - name: Subir fotos del recorrido
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: recorrido-android
+          path: |
+            android/app/build/outputs/connected_android_test_additional_output/
+            android/app/build/reports/androidTests/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Resultado
+        run: |
+          n=$(find android/app/build/outputs/connected_android_test_additional_output -name '*.png' 2>/dev/null | wc -l)
+          echo "### Recorrido en emulador: $n fotos en el artefacto **recorrido-android**" >> "$GITHUB_STEP_SUMMARY"
+          test ! -f recorrido-fallo

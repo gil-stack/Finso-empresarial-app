@@ -6,7 +6,7 @@ App nativa en **Kotlin + Jetpack Compose** (Material 3). La de iPhone vive en `i
 
 | Módulo | Qué tiene | Dónde se prueba |
 |---|---|---|
-| `nucleo/` | Kotlin puro, sin Android: dinero en centavos, fechas en hora de México, concepto SPEI, textos que firma la llave del teléfono, nombres legibles, textos de error. | Cualquier computadora con Java: `./gradlew -Pfinso.soloNucleo=true :nucleo:test` |
+| `nucleo/` | Kotlin puro, sin Android: cliente de la API `/movil/v1` (con renovación de sesión), servidor simulado, dinero en centavos, fechas en hora de México, concepto SPEI, textos que firma la llave del teléfono, nombres legibles, textos de error. | Cualquier computadora con Java: `./gradlew -Pfinso.soloNucleo=true :nucleo:test` |
 | `app/` | La app: diseño Finso (tema, letras Gully y Wanted Sans, botón menta), pantallas, llave del teléfono y huella. | GitHub Actions (necesita el SDK de Android). |
 
 ## Identidad (un solo lugar)
@@ -25,7 +25,9 @@ App nativa en **Kotlin + Jetpack Compose** (Material 3). La de iPhone vive en `i
 ## En la nube
 
 - **Cada PR que toca `android/`** corre «Android · pruebas»: lógica, pantallas con Robolectric (con capturas en claro y oscuro), lint y un APK de prueba. Las capturas y el APK quedan como artefactos de la corrida.
-- **Recorrido en emulador** y **entrega a prueba interna de Google Play**: llegan en los siguientes PR.
+- **Recorrido en emulador** («Android · recorrido en emulador»): enciende un teléfono Android de verdad (emulador Pixel 6, Android 14) dentro de GitHub, instala la app y hace el primer ingreso completo con datos simulados (correo, código, celular, huella, desbloqueo). Guarda una captura por pantalla en el artefacto `recorrido-android`.
+  - En el emulador no hay dedo: se arma con `-Pfinso.huellaSimulada=true`, que cambia la llave del teléfono por una de software. Nunca se usa en la versión de la tienda.
+- **Entrega a prueba interna de Google Play**: llega en un PR posterior.
 
 ## Seguridad
 
