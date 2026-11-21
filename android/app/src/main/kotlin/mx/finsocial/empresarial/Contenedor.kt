@@ -132,7 +132,7 @@ class Contenedor(
             } else {
                 LlaveKeystore(app) { actividad.get() }
             }
-            return Contenedor(guardado, api, llave, Telefono.datos(app), simulada, PreferenciasAndroid(app), sistema = SistemaAndroid(app))
+            return Contenedor(guardado, api, llave, Telefono.datos(app), simulada, PreferenciasAndroid(app), sistema = SistemaAndroid(app) { orden, token -> api.registrarAviso(orden, token) })
         }
     }
 }

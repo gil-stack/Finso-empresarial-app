@@ -6,16 +6,36 @@ import android.net.Uri
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import mx.finsocial.empresarial.R
 import mx.finsocial.empresarial.nucleo.api.Orden
 import mx.finsocial.empresarial.nucleo.api.Usuario
 import mx.finsocial.empresarial.nucleo.avisos.Enlace
 
-/** El [Sistema] de verdad: notificaciones, widget y accesos directos. */
-class SistemaAndroid(private val contexto: Context) : Sistema {
+/**
+ * El [Sistema] de verdad: notificaciones, widget y accesos directos. Al
+ * empezar a seguir una orden registra su aviso push ([registrarAviso]), si hay
+ * Firebase.
+ */
+class SistemaAndroid(
+    private val contexto: Context,
+    private val registrarAviso: suspend (orden: String, token: String) -> Unit,
+) : Sistema {
     private val enVivo = SpeiEnVivo(contexto)
+    private val alcance = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    override fun alVerOrden(orden: Orden) = enVivo.alVer(orden)
+    override fun alVerOrden(orden: Orden) {
+        if (enVivo.alVer(orden) && AvisosPush.configurado) {
+            alcance.launch {
+                val token = AvisosPush.token(contexto) ?: return@launch
+                // Si falla, la notificación sigue con la app abierta y a los 30 min dice «Sin confirmar».
+                runCatching { registrarAviso(orden.id, token) }
+            }
+        }
+    }
 
     override fun ordenesEnCurso(): List<String> = enVivo.enCurso()
 

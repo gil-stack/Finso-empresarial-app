@@ -16,6 +16,14 @@ val apiForzada = providers.gradleProperty("finso.api").orNull
 val apiUrl = providers.gradleProperty("finso.apiUrl").orNull ?: "https://empresas.finsocial.app/movil/v1"
 // Para las capturas de tienda se quita el bloqueo de capturas: -Pfinso.capturas=true.
 val modoCapturas = providers.gradleProperty("finso.capturas").orNull == "true"
+// Firebase (avisos con la app cerrada). Lo pone el CI de entrega desde los
+// secretos del repo; vacío = sin avisos push (la app funciona igual).
+fun firebase(nombre: String, env: String) =
+    providers.gradleProperty("finso.firebase.$nombre").orNull ?: System.getenv(env) ?: ""
+val firebaseAppId = firebase("appId", "FINSO_FIREBASE_APP_ID")
+val firebaseApiKey = firebase("apiKey", "FINSO_FIREBASE_API_KEY")
+val firebaseProyecto = firebase("proyecto", "FINSO_FIREBASE_PROYECTO")
+val firebaseRemitente = firebase("remitente", "FINSO_FIREBASE_REMITENTE")
 // Emulador del CI sin huella: llave en software, solo con datos simulados.
 val huellaSimulada = providers.gradleProperty("finso.huellaSimulada").orNull == "true"
 
@@ -33,6 +41,10 @@ android {
         buildConfigField("String", "FINSO_API_URL", "\"$apiUrl\"")
         buildConfigField("boolean", "MODO_CAPTURAS", modoCapturas.toString())
         buildConfigField("boolean", "HUELLA_SIMULADA", huellaSimulada.toString())
+        buildConfigField("String", "FIREBASE_APP_ID", "\"$firebaseAppId\"")
+        buildConfigField("String", "FIREBASE_API_KEY", "\"$firebaseApiKey\"")
+        buildConfigField("String", "FIREBASE_PROYECTO", "\"$firebaseProyecto\"")
+        buildConfigField("String", "FIREBASE_REMITENTE", "\"$firebaseRemitente\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -128,6 +140,7 @@ dependencies {
     implementation(libs.biometric)
     implementation(libs.fragment)
     implementation(libs.coroutines.android)
+    implementation(libs.firebase.messaging)
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)
 
