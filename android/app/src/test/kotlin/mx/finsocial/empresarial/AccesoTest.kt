@@ -123,7 +123,7 @@ class AccesoTest {
         val r = abrir().primerIngreso("ana@empresa.mx")
         r.tocarEtiqueta("activar").esperar("Hola, Ana")
         r.tocarEtiqueta("ajustes").esperar("Apariencia").foto("16-ajustes")
-        r.tocarEtiqueta("olvidar").esperar("¿Olvidar este teléfono?").tocar("Olvidar")
+        r.tocarEtiqueta("olvidar").esperar("¿Olvidar este teléfono?").tocar("Olvidar", contiene = false)
         r.esperarEtiqueta("entrar")
         assertNull(app.guardado.dispositivo)
     }

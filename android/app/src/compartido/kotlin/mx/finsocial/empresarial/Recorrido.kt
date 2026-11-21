@@ -35,12 +35,13 @@ class Recorrido(
         return this
     }
 
-    fun nodo(texto: String): SemanticsNodeInteraction = compose.onAllNodesWithText(texto, substring = true, ignoreCase = true).onFirst()
+    fun nodo(texto: String, contiene: Boolean = true): SemanticsNodeInteraction =
+        compose.onAllNodesWithText(texto, substring = contiene, ignoreCase = true).onFirst()
 
     fun etiqueta(tag: String): SemanticsNodeInteraction = compose.onAllNodes(hasTestTag(tag)).onFirst()
 
-    fun tocar(texto: String): Recorrido {
-        nodo(texto).performClick()
+    fun tocar(texto: String, contiene: Boolean = true): Recorrido {
+        nodo(texto, contiene).performClick()
         compose.waitForIdle()
         return this
     }
