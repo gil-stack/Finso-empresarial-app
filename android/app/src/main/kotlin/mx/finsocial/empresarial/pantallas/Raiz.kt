@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import mx.finsocial.empresarial.Contenedor
 import mx.finsocial.empresarial.estado.EstadoSesion
+import mx.finsocial.empresarial.pantallas.dentro.Dentro
 import mx.finsocial.empresarial.pantallas.acceso.Desbloqueo
 import mx.finsocial.empresarial.pantallas.acceso.FlujoAcceso
 import mx.finsocial.empresarial.ui.piezas.BaseAcceso
@@ -73,7 +74,7 @@ fun Raiz(contenedor: Contenedor) {
                     is EstadoSesion.Fuera -> Fuera(contenedor, e.aviso)
                     is EstadoSesion.Bloqueada -> Desbloqueo(contenedor, e.nombre)
                     is EstadoSesion.ElegirEmpresa -> ElegirEmpresa(contenedor, e.usuario)
-                    is EstadoSesion.Dentro -> Inicio(contenedor, e.usuario)
+                    is EstadoSesion.Dentro -> Dentro(contenedor, e.usuario)
                 }
             }
         }

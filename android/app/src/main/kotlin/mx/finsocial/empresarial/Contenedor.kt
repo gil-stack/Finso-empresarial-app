@@ -46,18 +46,35 @@ class Contenedor(
         _apariencia.value = a
     }
 
-    /** Preferencias que no son secretas (la apariencia). */
-    interface Preferencias {
-        var apariencia: Apariencia
+    private val _ocultarImportes = MutableStateFlow(preferencias.ocultarImportes)
+
+    /** El ojo de la tarjeta de saldo: oculta todos los importes (`$ •••••`). */
+    val ocultarImportes: StateFlow<Boolean> = _ocultarImportes
+
+    fun cambiarOcultarImportes(ocultar: Boolean) {
+        preferencias.ocultarImportes = ocultar
+        _ocultarImportes.value = ocultar
     }
 
-    class PreferenciasEnMemoria(override var apariencia: Apariencia = Apariencia.SISTEMA) : Preferencias
+    /** Preferencias que no son secretas (la apariencia y el ojo). */
+    interface Preferencias {
+        var apariencia: Apariencia
+        var ocultarImportes: Boolean
+    }
+
+    class PreferenciasEnMemoria(
+        override var apariencia: Apariencia = Apariencia.SISTEMA,
+        override var ocultarImportes: Boolean = false,
+    ) : Preferencias
 
     private class PreferenciasAndroid(contexto: Context) : Preferencias {
         private val p = contexto.getSharedPreferences("finso.preferencias", Context.MODE_PRIVATE)
         override var apariencia: Apariencia
             get() = runCatching { Apariencia.valueOf(p.getString("apariencia", null) ?: "SISTEMA") }.getOrDefault(Apariencia.SISTEMA)
             set(v) = p.edit().putString("apariencia", v.name).apply()
+        override var ocultarImportes: Boolean
+            get() = p.getBoolean("ocultarImportes", false)
+            set(v) = p.edit().putBoolean("ocultarImportes", v).apply()
     }
 
     companion object {

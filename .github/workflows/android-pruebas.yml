@@ -42,6 +42,15 @@ jobs:
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
+      # Robolectric baja su Android (~150 MB) de Maven Central al correr las
+      # pruebas; si Maven Central falla, fallan todas. Se guarda entre corridas.
+      - name: Android de Robolectric (caché)
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: robolectric-${{ hashFiles('android/gradle/libs.versions.toml') }}
+          restore-keys: robolectric-
+
       - name: Pruebas de lógica, pantallas (con capturas), lint y APK de prueba
         run: >
           ./gradlew --stacktrace
