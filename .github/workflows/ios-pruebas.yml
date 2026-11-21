@@ -72,6 +72,8 @@ jobs:
             -resultBundlePath build/Pruebas.xcresult > build/xcodebuild.log 2>&1
           codigo=$?
           grep -E "error:|Test Case .* (passed|failed)|Executed|\*\* (TEST|BUILD)" build/xcodebuild.log | tail -150
+          # Si una prueba de pantalla no encontró algo, su árbol de accesibilidad.
+          sed -n '/=== ARBOL/,/=== FIN ARBOL/p' build/xcodebuild.log | head -400
           exit $codigo
       - name: Sacar las capturas de las pruebas de pantalla
         if: always()

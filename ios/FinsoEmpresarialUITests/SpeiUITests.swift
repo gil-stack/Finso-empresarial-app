@@ -19,7 +19,16 @@ final class SpeiUITests: XCTestCase {
     }
 
     func esperar(_ e: XCUIElement, _ segundos: TimeInterval = 8, file: StaticString = #filePath, line: UInt = #line) {
-        XCTAssertTrue(e.waitForExistence(timeout: segundos), "No apareció \(e)", file: file, line: line)
+        if !e.waitForExistence(timeout: segundos) {
+            // Deja la pantalla y el árbol de accesibilidad para ver qué pasó.
+            captura("fallo-linea-\(line)")
+            let arbol = XCTAttachment(string: app.debugDescription)
+            arbol.name = "fallo-linea-\(line)-arbol"
+            arbol.lifetime = .keepAlways
+            add(arbol)
+            print("=== ARBOL linea \(line)\n\(app.debugDescription)\n=== FIN ARBOL")
+            XCTFail("No apareció \(e)", file: file, line: line)
+        }
     }
 
     func texto(_ t: String) -> XCUIElement {
