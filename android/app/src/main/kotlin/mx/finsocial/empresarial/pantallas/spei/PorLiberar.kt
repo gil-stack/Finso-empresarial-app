@@ -18,8 +18,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Fingerprint
-import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -64,6 +66,7 @@ import java.time.Instant
 private sealed interface PasoLiberar {
     data object Lista : PasoLiberar
     data class Detalle(val orden: Orden) : PasoLiberar
+    data class Rechazar(val orden: Orden) : PasoLiberar
     data class Resultado(val orden: Orden) : PasoLiberar
 }
 
@@ -72,8 +75,9 @@ private sealed interface PasoLiberar {
 fun PorLiberar(contenedor: Contenedor, datos: DatosDeInicio, alTerminar: () -> Unit) {
     var paso by remember { mutableStateOf<PasoLiberar>(PasoLiberar.Lista) }
     val atras: () -> Unit = {
-        when (paso) {
+        when (val p = paso) {
             is PasoLiberar.Detalle -> paso = PasoLiberar.Lista
+            is PasoLiberar.Rechazar -> paso = PasoLiberar.Detalle(p.orden)
             else -> alTerminar()
         }
     }
@@ -86,7 +90,13 @@ fun PorLiberar(contenedor: Contenedor, datos: DatosDeInicio, alTerminar: () -> U
     ) { p ->
         when (p) {
             PasoLiberar.Lista -> ListaPorLiberar(contenedor, datos, alVolver = atras, alElegir = { paso = PasoLiberar.Detalle(it) })
-            is PasoLiberar.Detalle -> DetalleParaLiberar(contenedor, p.orden, alVolver = atras, alTerminar = { paso = PasoLiberar.Resultado(it) })
+            is PasoLiberar.Detalle -> DetalleParaLiberar(
+                contenedor, p.orden,
+                alVolver = atras,
+                alRechazar = { paso = PasoLiberar.Rechazar(p.orden) },
+                alTerminar = { paso = PasoLiberar.Resultado(it) },
+            )
+            is PasoLiberar.Rechazar -> RechazarOrden(contenedor, p.orden, alVolver = atras, alTerminar = { paso = PasoLiberar.Resultado(it) })
             is PasoLiberar.Resultado -> ResultadoDeOrden(contenedor, p.orden, alListo = alTerminar)
         }
     }
@@ -136,13 +146,12 @@ private fun ListaPorLiberar(contenedor: Contenedor, datos: DatosDeInicio, alVolv
 }
 
 @Composable
-private fun DetalleParaLiberar(contenedor: Contenedor, orden: Orden, alVolver: () -> Unit, alTerminar: (Orden) -> Unit) {
+private fun DetalleParaLiberar(contenedor: Contenedor, orden: Orden, alVolver: () -> Unit, alRechazar: () -> Unit, alTerminar: (Orden) -> Unit) {
     val c = Finso.colores
     val alcance = rememberCoroutineScope()
     val firma = remember(orden.id) { FirmaDeOrden(contenedor.api, contenedor.guardado, contenedor.llave, orden, contenedor.reloj) }
     var cargando by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
-    var rechazar by remember { mutableStateOf(false) }
     val nombre = NombreLegible.de(orden.destino.titular)
     val importe = Dinero.pesos(orden.importeCentavos)
 
@@ -174,7 +183,7 @@ private fun DetalleParaLiberar(contenedor: Contenedor, orden: Orden, alVolver: (
                 alTocar = { ejecutar { firma.liberar("Liberar SPEI de $importe a $nombre") } },
             )
             TextButton(
-                onClick = { rechazar = true },
+                onClick = alRechazar,
                 enabled = !cargando,
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp).testTag("rechazar"),
             ) {
@@ -195,48 +204,74 @@ private fun DetalleParaLiberar(contenedor: Contenedor, orden: Orden, alVolver: (
         }
         AvisoEnLinea("Al liberarlo sale de la cuenta de tu empresa.", TipoAviso.INFO)
     }
-
-    if (rechazar) {
-        DialogoRechazar(
-            alCancelar = { rechazar = false },
-            alRechazar = { motivo ->
-                rechazar = false
-                ejecutar { firma.rechazar(motivo, "Rechazar SPEI de $importe a $nombre") }
-            },
-        )
-    }
 }
 
-/** «¿Rechazar este SPEI?» con el motivo (5 a 500); el botón rojo se activa con 5 o más. */
+/**
+ * «¿Rechazar este SPEI?» (§3.5): el motivo (5 a 500, lo ve quien lo pidió) y
+ * el botón rojo, que se activa con 5 o más. Va en su propia pantalla para que
+ * el teclado no tape nada.
+ */
 @Composable
-private fun DialogoRechazar(alCancelar: () -> Unit, alRechazar: (String) -> Unit) {
+private fun RechazarOrden(contenedor: Contenedor, orden: Orden, alVolver: () -> Unit, alTerminar: (Orden) -> Unit) {
     val c = Finso.colores
+    val alcance = rememberCoroutineScope()
+    val firma = remember(orden.id) { FirmaDeOrden(contenedor.api, contenedor.guardado, contenedor.llave, orden, contenedor.reloj) }
     var motivo by remember { mutableStateOf("") }
-    val valido = FirmaDeOrden.motivoValido(motivo)
-    AlertDialog(
-        onDismissRequest = alCancelar,
-        title = { Text("¿Rechazar este SPEI?") },
-        text = {
-            OutlinedTextField(
-                value = motivo,
-                onValueChange = { motivo = it.take(FirmaDeOrden.MOTIVO_MAXIMO) },
-                label = { Text("Motivo (lo verá quien lo pidió)") },
-                minLines = 2,
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(Radios.medio),
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                modifier = Modifier.fillMaxWidth().testTag("motivo"),
-            )
-        },
-        confirmButton = {
+    var cargando by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val nombre = NombreLegible.de(orden.destino.titular)
+    val importe = Dinero.pesos(orden.importeCentavos)
+
+    MarcoSpei(
+        titulo = null,
+        alVolver = alVolver,
+        abajo = {
+            AvisoEnLinea(error)
+            Spacer(Modifier.height(8.dp))
             Button(
-                onClick = { alRechazar(motivo.trim()) },
-                enabled = valido,
-                colors = ButtonDefaults.buttonColors(containerColor = c.peligro, contentColor = androidx.compose.ui.graphics.Color.White),
-                modifier = Modifier.testTag("confirmar-rechazo"),
+                onClick = {
+                    cargando = true
+                    error = null
+                    alcance.launch {
+                        try {
+                            alTerminar(firma.rechazar(motivo.trim(), "Rechazar SPEI de $importe a $nombre"))
+                        } catch (e: Exception) {
+                            error = textoDeFalla(contenedor, e)
+                        } finally {
+                            cargando = false
+                        }
+                    }
+                },
+                enabled = FirmaDeOrden.motivoValido(motivo) && !cargando,
+                shape = RoundedCornerShape(Radios.grande),
+                colors = ButtonDefaults.buttonColors(containerColor = c.peligro, contentColor = Color.White),
+                modifier = Modifier.fillMaxWidth().height(56.dp).testTag("confirmar-rechazo"),
             ) {
-                Text("Rechazar con tu huella")
+                Icon(Icons.Rounded.Fingerprint, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Rechazar con tu huella", style = MaterialTheme.typography.titleSmall)
             }
         },
-        dismissButton = { TextButton(onClick = alCancelar) { Text("Cancelar") } },
-    )
+    ) {
+        Spacer(Modifier.height(8.dp))
+        Text("¿Rechazar este SPEI?", style = MaterialTheme.typography.headlineMedium)
+        Spacer(Modifier.height(6.dp))
+        Text("$importe a $nombre, que pidió ${orden.pedidaPor}.", style = MaterialTheme.typography.bodyLarge, color = c.secundario)
+        Spacer(Modifier.height(24.dp))
+        OutlinedTextField(
+            value = motivo,
+            onValueChange = { motivo = it.take(FirmaDeOrden.MOTIVO_MAXIMO) },
+            label = { Text("Motivo (lo verá quien lo pidió)") },
+            minLines = 3,
+            shape = RoundedCornerShape(Radios.medio),
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+            modifier = Modifier.fillMaxWidth().testTag("motivo"),
+        )
+        Text(
+            "${motivo.trim().length}/${FirmaDeOrden.MOTIVO_MAXIMO} · mínimo ${FirmaDeOrden.MOTIVO_MINIMO}",
+            style = MaterialTheme.typography.bodySmall,
+            color = c.secundario,
+            modifier = Modifier.padding(top = 6.dp, start = 4.dp),
+        )
+    }
 }
