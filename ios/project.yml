@@ -80,14 +80,28 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: $(APP_ID).pruebas
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/FinsoEmpresarial.app/FinsoEmpresarial
         BUNDLE_LOADER: $(TEST_HOST)
+  FinsoEmpresarialUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: FinsoEmpresarialUITests
+    dependencies:
+      - target: FinsoEmpresarial
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_ID).pruebasui
+        TEST_TARGET_NAME: FinsoEmpresarial
 schemes:
   FinsoEmpresarial:
     build:
       targets:
         FinsoEmpresarial: all
         FinsoEmpresarialTests: [test]
+        FinsoEmpresarialUITests: [test]
     test:
       config: Debug
       gatherCoverageData: false
       targets:
         - FinsoEmpresarialTests
+        - FinsoEmpresarialUITests
