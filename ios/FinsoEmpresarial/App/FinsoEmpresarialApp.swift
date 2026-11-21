@@ -43,6 +43,30 @@ final class EstadoDeLaApp {
     }
 
     func nuevoFlujo() -> FlujoDeEntrada { FlujoDeEntrada(control: control, telefono: telefono) }
+
+    /// Un SPEI firmado cuya respuesta no llegó (§3.4, «SPEI sin confirmar»).
+    /// Vive mientras la app siga abierta, también bloqueada; se olvida al
+    /// salir, al entrar con otra cuenta o al cambiar de empresa.
+    @ObservationIgnored private var speiPendiente: (dueno: String, envio: EnvioSpei)?
+
+    private static func dueno(_ u: Usuario) -> String { u.id + "|" + (u.empresa?.id ?? "") }
+
+    /// Lo que abre «Mandar SPEI»: el pendiente, si hay, o uno nuevo.
+    func envioSpei(para usuario: Usuario, disponible: Int?) -> EnvioSpei {
+        if let p = speiPendiente, p.dueno == Self.dueno(usuario), p.envio.sinConfirmar {
+            p.envio.volverAlPendiente()
+            return p.envio
+        }
+        speiPendiente = nil
+        return EnvioSpei(api: control.api, almacen: control.almacen, llave: control.llave, disponible: disponible)
+    }
+
+    /// Al cerrar «Mandar SPEI»: se guarda solo si quedó sin confirmar.
+    func cerroSpei(_ envio: EnvioSpei, usuario: Usuario) {
+        speiPendiente = envio.sinConfirmar ? (Self.dueno(usuario), envio) : nil
+    }
+
+    func olvidarSpeiPendiente() { speiPendiente = nil }
 }
 
 /// Apariencia elegida en Ajustes (§3.6).
@@ -92,6 +116,12 @@ struct Raiz: View {
                 AvisoCapsula(simbolo: "eye.slash", texto: "Por seguridad, las capturas salen en negro.")
                     .padding(.bottom, 24)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .onChange(of: control.estado) { _, nuevo in
+            switch nuevo {
+            case .fuera, .elegirEmpresa: app.olvidarSpeiPendiente()
+            default: break
             }
         }
         .onChange(of: fase) { _, nueva in

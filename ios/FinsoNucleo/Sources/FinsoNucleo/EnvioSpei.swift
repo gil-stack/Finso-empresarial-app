@@ -68,6 +68,20 @@ public final class EnvioSpei {
     /// Hay un SPEI firmado cuya respuesta no llegó (se cayó la red).
     public var sinConfirmar: Bool { intento != nil }
 
+    /// Con un SPEI sin confirmar, «Atrás» sale a Inicio en lugar de dejar
+    /// cambiar importe, concepto o destino (§3.4, «SPEI sin confirmar»).
+    public var regresarSale: Bool { paso == .revisar && sinConfirmar }
+
+    public static let avisoDeReintento =
+        "No supimos si llegó tu SPEI. Inténtalo otra vez: si ya había llegado, no se duplica."
+
+    /// Al volver a «Mandar SPEI» con uno sin confirmar: directo a revisarlo.
+    public func volverAlPendiente() {
+        guard sinConfirmar else { return }
+        paso = .revisar
+        error = Self.avisoDeReintento
+    }
+
     public init(
         api: FinsoApi, almacen: AlmacenDeSesion, llave: LlaveDelDispositivo, disponible: Int?,
         reloj: @escaping @Sendable () -> Date = { Date() },
@@ -228,11 +242,15 @@ public final class EnvioSpei {
                 intento = nil
                 preparacion = nil
                 throw e
+            } catch let e as ErrorFinso where e.esSinRed {
+                error = Self.avisoDeReintento
+                return
             }
         }
     }
 
     public func regresar() {
+        guard !regresarSale else { return }
         error = nil
         switch paso {
         case .importe: paso = .destino

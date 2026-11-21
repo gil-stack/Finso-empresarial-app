@@ -87,7 +87,7 @@ struct Inicio: View {
                 .presentationDragIndicator(.visible)
         }
         .fullScreenCover(isPresented: $mandar, onDismiss: { Task { await datos.refrescar() } }) {
-            MandarSpei(app: app, disponible: datos.cuenta?.disponibleCentavos)
+            MandarSpei(app: app, usuario: usuario, disponible: datos.cuenta?.disponibleCentavos)
         }
     }
 

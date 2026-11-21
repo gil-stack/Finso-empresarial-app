@@ -200,7 +200,7 @@ final class OperacionTests: XCTestCase {
         e.teclearConcepto("Pago")
         await e.revisar()
         await e.pedir()  // sin respuestas: falla la red
-        XCTAssertEqual(e.error, ErrorFinso(.sinRed).paraPersona)
+        XCTAssertEqual(e.error, EnvioSpei.avisoDeReintento)
         XCTAssertEqual(llave.firmados.count, 1)
         t.respuestas = [(201, orden)]
         await e.pedir()
@@ -212,9 +212,9 @@ final class OperacionTests: XCTestCase {
         XCTAssertEqual(mandados[0].cuerpo, mandados[1].cuerpo)
     }
 
-    /// Si se cae la red y la persona regresa y vuelve a «Revisar», no se arma
-    /// otro pedido (otra llave): se reintenta el mismo, y uno distinto se
-    /// detiene hasta que el primero se confirme. Así no quedan dos por liberar.
+    /// §3.4 «SPEI sin confirmar»: si se cae la red, «Atrás» sale, volver a
+    /// «Mandar SPEI» abre el mismo pedido y no se arma otro (otra llave), así
+    /// no quedan dos órdenes por liberar. Una sola firma y un solo reto.
     func testRegresarTrasFallaDeRedNoArmaOtroPedido() async {
         let almacen = AlmacenEnMemoria()
         almacen.guardar(Sesion(
@@ -246,19 +246,25 @@ final class OperacionTests: XCTestCase {
         await e.pedir()  // se cae la red
         XCTAssertTrue(e.sinConfirmar)
 
-        // Regresa, cambia el importe y vuelve a «Revisar»: se detiene.
+        XCTAssertEqual(e.error, EnvioSpei.avisoDeReintento)
+
+        // «Atrás» sale a Inicio: no deja volver a cambiar el importe.
+        XCTAssertTrue(e.regresarSale)
         e.regresar()
-        XCTAssertEqual(e.paso, .importe)
+        XCTAssertEqual(e.paso, .revisar)
+
+        // Aunque cambie algo y toque «Revisar», no se arma otro pedido.
         e.teclearImporte("100")
         await e.revisar()
-        XCTAssertEqual(e.paso, .importe)
-        XCTAssertEqual(e.error, EnvioSpei.avisoSinConfirmar(SolicitudSpei(destino: "dst_1", importeCentavos: 1_000, concepto: "Pago")))
-
-        // Lo deja como estaba: vuelve a revisar sin preparar otro reto.
-        e.teclearImporte("10")
-        await e.revisar()
         XCTAssertEqual(e.paso, .revisar)
-        XCTAssertNil(e.error)
+        XCTAssertEqual(
+            e.error,
+            EnvioSpei.avisoSinConfirmar(SolicitudSpei(destino: "dst_1", importeCentavos: 1_000, concepto: "Pago")))
+
+        // Vuelve a «Mandar SPEI»: directo al mismo «Revisa tu SPEI».
+        e.volverAlPendiente()
+        XCTAssertEqual(e.paso, .revisar)
+        XCTAssertEqual(e.error, EnvioSpei.avisoDeReintento)
 
         t.respuestas = [(201, orden)]
         await e.pedir()

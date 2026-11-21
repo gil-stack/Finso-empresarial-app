@@ -5,14 +5,15 @@ import SwiftUI
 /// revisar → resultado.
 struct MandarSpei: View {
     let app: EstadoDeLaApp
+    let usuario: Usuario
     @State private var envio: EnvioSpei
     @Environment(\.dismiss) private var cerrar
     @Environment(\.accessibilityReduceMotion) private var reducir
 
-    init(app: EstadoDeLaApp, disponible: Int?) {
+    init(app: EstadoDeLaApp, usuario: Usuario, disponible: Int?) {
         self.app = app
-        let c = app.control
-        _envio = State(initialValue: EnvioSpei(api: c.api, almacen: c.almacen, llave: c.llave, disponible: disponible))
+        self.usuario = usuario
+        _envio = State(initialValue: app.envioSpei(para: usuario, disponible: disponible))
     }
 
     var body: some View {
@@ -20,6 +21,7 @@ struct MandarSpei: View {
             contenido.toolbar(.hidden, for: .navigationBar)
         }
         .tint(Finso.acento)
+        .onDisappear { app.cerroSpei(envio, usuario: usuario) }
     }
 
     private var contenido: some View {
@@ -29,10 +31,10 @@ struct MandarSpei: View {
                 HStack {
                     if envio.paso != .resultado {
                         BotonRedondo(
-                            simbolo: envio.paso == .destino ? "xmark" : "chevron.left",
-                            etiqueta: envio.paso == .destino ? "Cerrar" : "Regresar"
+                            simbolo: envio.paso == .destino || envio.regresarSale ? "xmark" : "chevron.left",
+                            etiqueta: envio.paso == .destino || envio.regresarSale ? "Cerrar" : "Regresar"
                         ) {
-                            if envio.paso == .destino {
+                            if envio.paso == .destino || envio.regresarSale {
                                 cerrar()
                             } else {
                                 withAnimation(Ritmo.normal) { envio.regresar() }
@@ -317,7 +319,7 @@ struct RevisarSpei: View {
                 Task { await envio.pedir() }
             } label: {
                 if envio.sinConfirmar {
-                    Label("Reintentar", systemImage: "arrow.clockwise")
+                    Label("Intentar otra vez", systemImage: "arrow.clockwise")
                 } else {
                     Label("Pedir con \(Biometria.nombre)", systemImage: Biometria.simbolo)
                 }
