@@ -107,6 +107,30 @@ class Recorrido(
         if (fotos) foto("06-activar-huella")
         return this
     }
+
+    /** Primer ingreso completo hasta Inicio («Hola, …»). */
+    fun entrarComo(correo: String, hola: String): Recorrido {
+        primerIngreso(correo)
+        tocarEtiqueta("activar")
+        esperar("Hola, $hola")
+        return this
+    }
+
+    /** Desde Inicio: elige el destino, teclea importe y concepto y llega a «Revisa tu SPEI». */
+    fun pedirSpei(destino: String, importe: String, concepto: String, fotos: Boolean = false): Recorrido {
+        tocarEtiqueta("mandar")
+        esperarEtiqueta("destino-$destino")
+        if (fotos) foto("spei-1-destinos")
+        tocarEtiqueta("destino-$destino")
+        esperarEtiqueta("importe")
+        teclear("importe", importe)
+        escribir("concepto", concepto)
+        if (fotos) foto("spei-2-importe")
+        tocarEtiqueta("revisar")
+        esperar("Revisa tu SPEI")
+        if (fotos) foto("spei-3-revisar")
+        return this
+    }
 }
 
 /** El campo de texto con esa etiqueta, o el que está dentro de algo con esa etiqueta. */

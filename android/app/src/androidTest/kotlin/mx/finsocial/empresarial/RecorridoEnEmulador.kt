@@ -44,6 +44,16 @@ class RecorridoEnEmulador {
         r.tocarEtiqueta("ajustes").esperar("Apariencia").foto("08-ajustes")
         r.tocarEtiqueta("salir")
         // Al volver, la huella se pide sola y entra.
-        r.esperarEtiqueta("saludo").foto("09-de-vuelta")
+        r.esperarEtiqueta("saludo").esperarEtiqueta("saldo").foto("09-de-vuelta")
+
+        // Pedir un SPEI (queda por liberar).
+        r.pedirSpei("dst_SIM_PAPELERA", "1500", "Pago diseño año", fotos = true)
+        r.tocarEtiqueta("pedir").esperar("Listo, falta liberarlo").foto("10-spei-pedido")
+        r.tocarEtiqueta("listo").esperarEtiqueta("por-liberar")
+
+        // Liberar el de Luis: pasa a «Enviando…» y en unos segundos a «SPEI enviado».
+        r.tocarEtiqueta("por-liberar").tocarEtiqueta("orden-spo_SIM_PENDIENTE").esperar("pidió mandar").foto("11-por-liberar")
+        r.tocarEtiqueta("liberar").esperar("SPEI enviado").foto("12-spei-enviado")
+        r.tocarEtiqueta("listo").esperarEtiqueta("saludo").foto("13-inicio")
     }
 }
