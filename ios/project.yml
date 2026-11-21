@@ -1,0 +1,93 @@
+# Proyecto de Xcode generado con XcodeGen (`xcodegen generate` en ios/).
+# El .xcodeproj no se guarda en el repo: se arma en el CI.
+name: FinsoEmpresarial
+options:
+  bundleIdPrefix: mx.finsocial
+  deploymentTarget:
+    iOS: "17.0"
+  developmentLanguage: es-MX
+  createIntermediateGroups: true
+configs:
+  Debug: debug
+  Release: release
+packages:
+  FinsoNucleo:
+    path: FinsoNucleo
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    TARGETED_DEVICE_FAMILY: "1"
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    DEVELOPMENT_TEAM: ""
+targets:
+  FinsoEmpresarial:
+    type: application
+    platform: iOS
+    configFiles:
+      Debug: Config/Debug.xcconfig
+      Release: Config/Release.xcconfig
+    sources:
+      - path: FinsoEmpresarial
+    dependencies:
+      - package: FinsoNucleo
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_ID)
+        PRODUCT_NAME: FinsoEmpresarial
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: YES
+        CODE_SIGN_STYLE: Automatic
+        # En el simulador se firma «para correr aquí», sin equipo de Apple.
+        "CODE_SIGN_IDENTITY[sdk=iphonesimulator*]": "-"
+        INFOPLIST_FILE: FinsoEmpresarial/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+    info:
+      path: FinsoEmpresarial/Info.plist
+      properties:
+        CFBundleDisplayName: $(APP_NOMBRE)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDevelopmentRegion: es-MX
+        CFBundleLocalizations: [es-MX]
+        LSRequiresIPhoneOS: true
+        ITSAppUsesNonExemptEncryption: false
+        UILaunchScreen:
+          UIColorName: FondoArranque
+        UIApplicationSupportsIndirectInputEvents: true
+        UIRequiresFullScreen: true
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        NSFaceIDUsageDescription: "Para entrar y firmar tus operaciones con Face ID."
+        UIAppFonts:
+          - Gully-Medium.ttf
+          - Gully-SemiBold.ttf
+          - Gully-Bold.ttf
+          - WantedSansStd-Regular.ttf
+          - WantedSansStd-Medium.ttf
+          - WantedSansStd-SemiBold.ttf
+          - WantedSansStd-Bold.ttf
+        FinsoApi: $(FINSO_API)
+        FinsoApiUrl: $(FINSO_API_URL)
+  FinsoEmpresarialTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: FinsoEmpresarialTests
+    dependencies:
+      - target: FinsoEmpresarial
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_ID).pruebas
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/FinsoEmpresarial.app/FinsoEmpresarial
+        BUNDLE_LOADER: $(TEST_HOST)
+schemes:
+  FinsoEmpresarial:
+    build:
+      targets:
+        FinsoEmpresarial: all
+        FinsoEmpresarialTests: [test]
+    test:
+      config: Debug
+      gatherCoverageData: false
+      targets:
+        - FinsoEmpresarialTests

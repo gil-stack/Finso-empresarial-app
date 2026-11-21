@@ -1,0 +1,3 @@
+#include "Identidad.xcconfig"
+// En Debug la app usa datos de prueba (simulada). Se cambia con FINSO_API=real.
+FINSO_API = simulada

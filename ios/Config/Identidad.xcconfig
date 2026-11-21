@@ -1,0 +1,10 @@
+// Identidad de la app: el ÚNICO lugar donde viven el identificador y el
+// nombre visible (especificación §1). Si Apple dice que el identificador está
+// ocupado, se cambia aquí y en ningún otro lado.
+APP_ID = mx.finsocial.empresarial
+APP_NOMBRE = Finso Empresarial
+MARKETING_VERSION = 1.0.0
+// El CI lo cambia por el número de corrida.
+CURRENT_PROJECT_VERSION = 1
+// Servidor real (Finso Empresas). Las dos diagonales se escapan en xcconfig.
+FINSO_API_URL = https:/$()/empresas.finsocial.app/movil/v1

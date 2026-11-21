@@ -1,0 +1,2 @@
+#include "Identidad.xcconfig"
+FINSO_API = real
