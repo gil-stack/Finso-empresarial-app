@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -15,6 +16,7 @@ import mx.finsocial.empresarial.nucleo.NombreLegible
 import mx.finsocial.empresarial.pantallas.Raiz
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -75,6 +77,21 @@ class CuentaSpeiTest {
         assertTrue(texto.startsWith("finso-movil:v1:spei:${app.guardado.dispositivo}:"))
         assertTrue(texto.endsWith(":dst_SIM_PAPELERA:150000:Pago diseno ano"))
         r.tocarEtiqueta("listo").esperarEtiqueta("saludo")
+    }
+
+    @Test fun `17b - si se corta la red y vuelve a Mandar SPEI no se duplica`() {
+        val r = abrir().entrarComo("ana@empresa.mx", "Ana")
+        r.pedirSpei("dst_SIM_PAPELERA", "1500", "Pago unico")
+        app.cortarDespuesDe = "/spei"
+        r.tocarEtiqueta("pedir").esperar("No supimos si llegó tu SPEI").esperar("Intentar otra vez").foto("17b-sin-confirmar")
+        // Atrás no deja cambiar datos: sale a Inicio. Al volver a «Mandar SPEI» regresa al mismo pedido.
+        compose.onNodeWithContentDescription("Volver").performClick()
+        r.esperarEtiqueta("saludo").tocarEtiqueta("mandar").esperar("Revisa tu SPEI").esperar("No supimos si llegó")
+        r.tocarEtiqueta("pedir").esperar("Listo, falta liberarlo")
+        assertEquals(1, app.llave.firmados.count { it.startsWith("finso-movil:v1:spei:") })
+        val ordenes = kotlinx.coroutines.runBlocking { app.api.ordenes() }
+        assertEquals(1, ordenes.count { it.concepto == "Pago unico" })
+        assertNull(app.contenedor.speiSinConfirmar)
     }
 
     @Test fun `18 - el solicitante no ve saldo ni movimientos ni por liberar pero pide SPEI`() {

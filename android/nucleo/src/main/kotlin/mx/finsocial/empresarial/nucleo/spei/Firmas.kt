@@ -2,6 +2,7 @@ package mx.finsocial.empresarial.nucleo.spei
 
 import mx.finsocial.empresarial.nucleo.TextoFirmado
 import mx.finsocial.empresarial.nucleo.api.ApiFinso
+import mx.finsocial.empresarial.nucleo.api.Destino
 import mx.finsocial.empresarial.nucleo.api.FallaApi
 import mx.finsocial.empresarial.nucleo.api.Guardado
 import mx.finsocial.empresarial.nucleo.api.LlaveDelTelefono
@@ -69,6 +70,13 @@ class PedidoSpei(
         }
     }
 }
+
+/**
+ * Un SPEI que se mandó pero no se supo si llegó (se cortó la red). Mientras
+ * exista, la app vuelve a ese mismo pedido (misma llave y firma) y no deja
+ * preparar otro: así nunca quedan dos órdenes por un solo intento.
+ */
+class SpeiSinConfirmar(val destino: Destino, val pedido: PedidoSpei)
 
 /**
  * Liberar o rechazar una orden de otra persona (§3.5). Mismas reglas de

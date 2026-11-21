@@ -15,6 +15,7 @@ import mx.finsocial.empresarial.nucleo.api.LlaveDeSoftware
 import mx.finsocial.empresarial.nucleo.api.LlaveDelTelefono
 import mx.finsocial.empresarial.nucleo.api.Llavero
 import mx.finsocial.empresarial.nucleo.api.ServidorSimulado
+import mx.finsocial.empresarial.nucleo.spei.SpeiSinConfirmar
 import mx.finsocial.empresarial.seguridad.LlaveKeystore
 import mx.finsocial.empresarial.seguridad.LlaveroAndroid
 import mx.finsocial.empresarial.seguridad.Telefono
@@ -45,6 +46,9 @@ class Contenedor(
         preferencias.apariencia = a
         _apariencia.value = a
     }
+
+    /** El SPEI que se mandó sin saber si llegó (ver [SpeiSinConfirmar]). Se pierde al cerrar la app. */
+    var speiSinConfirmar: SpeiSinConfirmar? = null
 
     private val _ocultarImportes = MutableStateFlow(preferencias.ocultarImportes)
 
