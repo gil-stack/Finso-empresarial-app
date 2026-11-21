@@ -1,0 +1,109 @@
+# Entrega del iPhone a TestFlight, armada y firmada en una Mac de GitHub.
+# Corre a mano (botón «Run workflow») o al crear una etiqueta v*, nunca en
+# cada push: los minutos de macOS cuestan 10× los de Linux.
+#
+# Firma automática con la llave de API de App Store Connect: Xcode crea y
+# renueva certificados y perfiles solo. Secretos del repo que necesita:
+# APPLE_TEAM_ID, ASC_KEY_ID, ASC_ISSUER_ID y ASC_KEY_P8 (contenido del .p8).
+# Sin ellos, el flujo se salta con un aviso en lugar de fallar.
+name: iPhone · entregar a TestFlight
+
+on:
+  workflow_dispatch:
+    inputs:
+      api:
+        description: "Datos: real (Finso Empresas) o simulada (de prueba)"
+        type: choice
+        options: [real, simulada]
+        default: real
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: ios-testflight
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  testflight:
+    name: Armar, firmar y subir
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      FINSO_API: ${{ github.event.inputs.api || 'real' }}
+    steps:
+      - name: Revisar secretos
+        id: secretos
+        run: |
+          if [ -z "$APPLE_TEAM_ID" ] || [ -z "$ASC_KEY_ID" ] || [ -z "$ASC_ISSUER_ID" ] || [ -z "$ASC_KEY_P8" ]; then
+            echo "::warning::Faltan los secretos de Apple (APPLE_TEAM_ID, ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8). No se sube nada."
+            echo "listos=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "listos=si" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.secretos.outputs.listos == 'si'
+      - name: Elegir Xcode 26
+        if: steps.secretos.outputs.listos == 'si'
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$XCODE" ]; then sudo xcode-select -s "$XCODE"; fi
+          xcodebuild -version
+      - name: Generar el proyecto
+        if: steps.secretos.outputs.listos == 'si'
+        working-directory: ios
+        run: |
+          brew install xcodegen >/dev/null
+          xcodegen generate
+      - name: Llave de App Store Connect (archivo temporal)
+        if: steps.secretos.outputs.listos == 'si'
+        run: |
+          umask 077
+          printf '%s' "$ASC_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
+      - name: Archivar (firma automática)
+        if: steps.secretos.outputs.listos == 'si'
+        working-directory: ios
+        run: |
+          xcodebuild archive \
+            -project FinsoEmpresarial.xcodeproj -scheme FinsoEmpresarial -configuration Release \
+            -destination "generic/platform=iOS" -archivePath build/FinsoEmpresarial.xcarchive \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}" FINSO_API="$FINSO_API" \
+            > build/archivar.log 2>&1 || { grep -E "error:|warning: .*sign" build/archivar.log | tail -60; exit 1; }
+          tail -5 build/archivar.log
+      - name: Exportar y subir a TestFlight
+        if: steps.secretos.outputs.listos == 'si'
+        working-directory: ios
+        run: |
+          cat > build/ExportOptions.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$APPLE_TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath build/FinsoEmpresarial.xcarchive -exportPath build/exportado \
+            -exportOptionsPlist build/ExportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            > build/exportar.log 2>&1 || { grep -E "error|Error" build/exportar.log | tail -60; exit 1; }
+          tail -5 build/exportar.log
+          echo "Subido: versión 1.0.0 (${{ github.run_number }}), datos $FINSO_API." >> "$GITHUB_STEP_SUMMARY"
+      - name: Borrar la llave
+        if: always()
+        run: rm -f "$RUNNER_TEMP/AuthKey.p8"
