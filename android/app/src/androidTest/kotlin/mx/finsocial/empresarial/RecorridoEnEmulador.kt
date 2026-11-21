@@ -1,10 +1,7 @@
 package mx.finsocial.empresarial
 
 import android.graphics.Bitmap
-import androidx.compose.ui.graphics.asAndroidBitmap
-import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onRoot
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assume.assumeTrue
@@ -33,7 +30,10 @@ class RecorridoEnEmulador {
     }
 
     private fun recorrido() = Recorrido(compose, espera = 20_000) { nombre ->
-        val img = compose.onRoot().captureToImage().asAndroidBitmap()
+        // Foto de la pantalla entera (incluye hojas, diálogos y teclado),
+        // como la vería la persona.
+        compose.waitForIdle()
+        val img = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot() ?: return@Recorrido
         File(carpeta, "emulador-$nombre.png").outputStream().use { img.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
 
