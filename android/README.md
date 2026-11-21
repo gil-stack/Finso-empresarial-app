@@ -55,6 +55,21 @@ Es el equivalente en Android de la Isla Dinámica del iPhone (especificación §
 - **Ligas internas** `finso-empresarial://orden?ref=…`, `://mandar` y `://por-liberar`: solo dicen a dónde ir. La orden se vuelve a pedir al servidor con la sesión, y cualquier otra liga se ignora. No se pueden abrir desde una página web.
 - El permiso de notificaciones se pide una sola vez, al ver el primer resultado de un SPEI. Si la persona dice que no, todo lo demás funciona igual.
 
+## Fuera de la app: SPEI en vivo, widget y accesos directos
+
+Es el equivalente en Android de la Isla Dinámica del iPhone (especificación §10 a §12). Vive en `app/.../sistema/`; los textos y reglas están en `nucleo/avisos/` y tienen sus pruebas.
+
+- **Notificación en vivo de cada SPEI** (`SpeiEnVivo`): sale al pedir, liberar o abrir una orden, y avanza de «Falta que la liberen» a «Enviando…» y luego a «Enviado» (o «Rechazado» / «Devuelto»).
+  - En Android 16 es un *Live Update*: barra de avance en tres partes y un chip con el importe en la barra de estado.
+  - En versiones anteriores es una notificación en curso con barra de avance.
+  - No suena. En la pantalla bloqueada solo dice «SPEI en proceso».
+  - Sigue máximo 3 órdenes. Al terminar se queda 15 min. Si pasan 30 min sin noticias, dice «Sin confirmar, abre la app».
+  - Con la app abierta se actualiza cada 15 s. Con la app cerrada se va a actualizar con avisos del servidor (FCM); eso se enciende cuando exista el proyecto de Firebase, en el PR de entrega.
+- **Widget**: «SPEI por liberar: N» con «Revisar», o «Mandar SPEI». Nunca muestra saldo.
+- **Accesos directos** (mantener presionado el ícono): «Mandar SPEI» y «Por liberar», según los permisos. Al salir se quitan, junto con el widget y las notificaciones.
+- **Ligas internas** `finso-empresarial://orden?ref=…`, `://mandar` y `://por-liberar`: solo dicen a dónde ir. La orden se vuelve a pedir al servidor con la sesión, y cualquier otra liga se ignora. No se pueden abrir desde una página web.
+- El permiso de notificaciones se pide una sola vez, al ver el primer resultado de un SPEI. Si la persona dice que no, todo lo demás funciona igual.
+
 ## Seguridad
 
 - Sin respaldo en la nube (`allowBackup=false` y `sin_respaldo.xml`).
