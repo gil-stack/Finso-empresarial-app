@@ -35,7 +35,7 @@ struct MandarSpei: View {
                             if envio.paso == .destino {
                                 cerrar()
                             } else {
-                                withAnimation(Movimiento.normal) { envio.regresar() }
+                                withAnimation(Ritmo.normal) { envio.regresar() }
                             }
                         }
                         .foregroundStyle(Finso.texto)
@@ -55,11 +55,11 @@ struct MandarSpei: View {
                     }
                 }
                 .id(envio.paso)
-                .transition(Movimiento.paso(reducir: reducir))
+                .transition(Ritmo.paso(reducir: reducir))
             }
         }
-        .animation(Movimiento.normal, value: envio.paso)
-        .animation(Movimiento.rapido, value: envio.error)
+        .animation(Ritmo.normal, value: envio.paso)
+        .animation(Ritmo.rapido, value: envio.error)
         .sensoryFeedback(.error, trigger: envio.error) { _, nuevo in nuevo != nil && envio.paso == .revisar }
     }
 }
@@ -195,7 +195,7 @@ struct ImporteYConcepto: View {
                     .accessibilityIdentifier("importe")
                 }
                 .frame(maxWidth: .infinity)
-                .animation(Movimiento.rapido, value: tamano)
+                .animation(Ritmo.rapido, value: tamano)
                 if let disp = envio.disponible {
                     Text(envio.pasaDelDisponible
                         ? "Pasa tu disponible de \(Dinero.pesos(disp))" : "Disponible \(Dinero.pesos(disp))")
@@ -362,7 +362,7 @@ struct ResultadoDeOrden: View {
                 .padding(.vertical, 10)
             }
         }
-        .animation(Movimiento.resorte, value: orden.estado)
+        .animation(Ritmo.resorte, value: orden.estado)
     }
 }
 

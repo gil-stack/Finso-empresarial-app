@@ -55,7 +55,7 @@ struct Desbloqueo: View {
             .frame(maxWidth: 520)
         }
         .environment(\.colorScheme, .dark)
-        .animation(Movimiento.rapido, value: error)
+        .animation(Ritmo.rapido, value: error)
         .confirmationDialog(
             "Para volver a entrar en este teléfono vas a necesitar tu correo, tu contraseña y los códigos.",
             isPresented: $confirmarOtraCuenta, titleVisibility: .visible

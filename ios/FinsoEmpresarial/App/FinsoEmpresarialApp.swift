@@ -84,8 +84,8 @@ struct Raiz: View {
                 TapaDePrivacidad().transition(.opacity)
             }
         }
-        .animation(Movimiento.lento, value: control.estado)
-        .animation(Movimiento.rapido, value: fase)
+        .animation(Ritmo.lento, value: control.estado)
+        .animation(Ritmo.rapido, value: fase)
         .preferredColorScheme(apariencia.esquema)
         .overlay(alignment: .bottom) {
             if avisoDeCaptura {
@@ -103,10 +103,10 @@ struct Raiz: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.userDidTakeScreenshotNotification)) { _ in
             guard !Configuracion.capturasPermitidas else { return }
-            withAnimation(Movimiento.normal) { avisoDeCaptura = true }
+            withAnimation(Ritmo.normal) { avisoDeCaptura = true }
             Task {
                 try? await Task.sleep(for: .seconds(3))
-                withAnimation(Movimiento.normal) { avisoDeCaptura = false }
+                withAnimation(Ritmo.normal) { avisoDeCaptura = false }
             }
         }
     }

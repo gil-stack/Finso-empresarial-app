@@ -14,7 +14,7 @@ struct Palomita: View {
             .opacity(dibujada ? 1 : 0)
             .frame(width: 92, height: 92)
             .vidrio(Circle())
-            .onAppear { withAnimation(Movimiento.resorte) { dibujada = true } }
+            .onAppear { withAnimation(Ritmo.resorte) { dibujada = true } }
             .accessibilityLabel("Listo")
     }
 }
@@ -34,10 +34,10 @@ private struct ConPalomita: ViewModifier {
             }
             .sensoryFeedback(.success, trigger: disparador)
             .onChange(of: disparador) { _, _ in
-                withAnimation(Movimiento.normal) { visible = true }
+                withAnimation(Ritmo.normal) { visible = true }
                 Task {
                     try? await Task.sleep(for: .seconds(1.1))
-                    withAnimation(Movimiento.normal) { visible = false }
+                    withAnimation(Ritmo.normal) { visible = false }
                 }
             }
     }

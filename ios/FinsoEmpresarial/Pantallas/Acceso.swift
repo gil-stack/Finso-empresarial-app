@@ -14,13 +14,13 @@ struct Acceso: View {
         ZStack {
             if let flujo {
                 PasosDeEntrada(flujo: flujo, simulada: app.simulada) {
-                    withAnimation(Movimiento.normal) { self.flujo = nil }
+                    withAnimation(Ritmo.normal) { self.flujo = nil }
                 }
-                .transition(Movimiento.paso(reducir: reducir))
+                .transition(Ritmo.paso(reducir: reducir))
             } else {
                 Bienvenida(simulada: app.simulada, aviso: aviso) {
                     app.control.avisoVisto()
-                    withAnimation(Movimiento.normal) { flujo = app.nuevoFlujo() }
+                    withAnimation(Ritmo.normal) { flujo = app.nuevoFlujo() }
                 }
                 .transition(.opacity)
             }
@@ -45,7 +45,7 @@ struct PasosDeEntrada: View {
                         if flujo.paso == .correo {
                             salir()
                         } else {
-                            withAnimation(Movimiento.normal) { flujo.volverAlCorreo() }
+                            withAnimation(Ritmo.normal) { flujo.volverAlCorreo() }
                         }
                     }
                     .foregroundStyle(Finso.texto)
@@ -59,11 +59,11 @@ struct PasosDeEntrada: View {
                 .padding(.top, 4)
                 pasoActual
                     .id(claveDelPaso)
-                    .transition(Movimiento.paso(reducir: reducir))
+                    .transition(Ritmo.paso(reducir: reducir))
             }
         }
-        .animation(Movimiento.normal, value: flujo.paso)
-        .animation(Movimiento.rapido, value: flujo.error)
+        .animation(Ritmo.normal, value: flujo.paso)
+        .animation(Ritmo.rapido, value: flujo.error)
     }
 
     private var claveDelPaso: String {
@@ -189,7 +189,7 @@ struct PasoCodigo: View {
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
                                 .strokeBorder(actual ? Finso.menta : .clear, lineWidth: 1.5))
                         .scaleEffect(i < digitos.count ? 1 : 0.98)
-                        .animation(Movimiento.resorte, value: digitos.count)
+                        .animation(Ritmo.resorte, value: digitos.count)
                 }
             }
             .accessibilityHidden(true)

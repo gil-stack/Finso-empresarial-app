@@ -28,8 +28,8 @@ struct BotonPrincipal: ButtonStyle {
                 .fill(Finso.accion.opacity(habilitado ? 1 : 0.2)))
         .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .scaleEffect(configuration.isPressed ? 0.97 : 1)
-        .animation(Movimiento.resorte, value: configuration.isPressed)
-        .animation(Movimiento.rapido, value: cargando)
+        .animation(Ritmo.resorte, value: configuration.isPressed)
+        .animation(Ritmo.rapido, value: cargando)
         .accessibilityAddTraits(.isButton)
     }
 }

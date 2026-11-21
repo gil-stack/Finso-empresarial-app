@@ -210,7 +210,7 @@ struct TarjetaDeSaldo: View {
                         simbolo: datos.ocultarImportes ? "eye.slash" : "eye",
                         etiqueta: datos.ocultarImportes ? "Mostrar importes" : "Ocultar importes"
                     ) {
-                        withAnimation(Movimiento.rapido) { datos.ocultarImportes.toggle() }
+                        withAnimation(Ritmo.rapido) { datos.ocultarImportes.toggle() }
                     }
                     .foregroundStyle(Finso.sobreSaldo)
                     .accessibilityIdentifier("ojo")

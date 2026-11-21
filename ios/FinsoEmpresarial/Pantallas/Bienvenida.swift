@@ -56,7 +56,7 @@ struct Bienvenida: View {
             .frame(maxWidth: 520)
         }
         .environment(\.colorScheme, .dark)
-        .onAppear { withAnimation(Movimiento.lento.delay(0.1)) { visible = true } }
+        .onAppear { withAnimation(Ritmo.lento.delay(0.1)) { visible = true } }
     }
 }
 
