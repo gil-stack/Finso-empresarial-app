@@ -29,6 +29,19 @@ final class ActividadesEnVivo {
             relevanceScore: o.estado.esFinal ? 0 : 50)
     }
 
+    /// Al salir, entrar con otra cuenta o cambiar de empresa: quita todas las
+    /// actividades de inmediato y deja de mandar tokens (como Android quita sus
+    /// notificaciones).
+    func terminarTodas() {
+        for t in tokens.values { t.cancel() }
+        tokens = [:]
+        let actividades = Activity<ActividadSpei>.activities
+        guard !actividades.isEmpty else { return }
+        Task {
+            for a in actividades { await a.end(nil, dismissalPolicy: .immediate) }
+        }
+    }
+
     /// Inicia o actualiza la actividad de la orden.
     func seguir(_ o: Orden) {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }

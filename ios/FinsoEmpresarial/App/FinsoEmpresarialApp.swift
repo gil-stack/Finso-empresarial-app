@@ -132,7 +132,9 @@ struct Raiz: View {
         }
         .onChange(of: control.estado) { _, nuevo in
             switch nuevo {
-            case .fuera, .elegirEmpresa: app.olvidarSpeiPendiente()
+            case .fuera, .elegirEmpresa:
+                app.olvidarSpeiPendiente()
+                ActividadesEnVivo.compartidas.terminarTodas()
             default: break
             }
         }

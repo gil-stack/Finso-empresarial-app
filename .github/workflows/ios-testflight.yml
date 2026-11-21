@@ -1,6 +1,7 @@
 # Entrega del iPhone a TestFlight, armada y firmada en una Mac de GitHub.
-# Corre a mano (botón «Run workflow») o al crear una etiqueta v*, nunca en
-# cada push: los minutos de macOS cuestan 10× los de Linux.
+# Corre solo a mano (botón «Run workflow»): nada se sube a Apple sin que
+# alguien lo pida. Los secretos llegan únicamente a los pasos de archivar y
+# exportar; el resto del job (checkout, brew, xcodegen) no los ve.
 #
 # Firma automática con la llave de API de App Store Connect: Xcode crea y
 # renueva certificados y perfiles solo. Secretos del repo que necesita:
@@ -16,8 +17,6 @@ on:
         type: choice
         options: [real, simulada]
         default: real
-  push:
-    tags: ["v*"]
 
 concurrency:
   group: ios-testflight
@@ -32,16 +31,15 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 45
     env:
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
       FINSO_API: ${{ github.event.inputs.api || 'real' }}
     steps:
       - name: Revisar secretos
         id: secretos
+        env:
+          # Solo «true» o «false»: este paso no ve los valores.
+          HAY_TODOS: ${{ secrets.APPLE_TEAM_ID != '' && secrets.ASC_KEY_ID != '' && secrets.ASC_ISSUER_ID != '' && secrets.ASC_KEY_P8 != '' }}
         run: |
-          if [ -z "$APPLE_TEAM_ID" ] || [ -z "$ASC_KEY_ID" ] || [ -z "$ASC_ISSUER_ID" ] || [ -z "$ASC_KEY_P8" ]; then
+          if [ "$HAY_TODOS" != "true" ]; then
             echo "::warning::Faltan los secretos de Apple (APPLE_TEAM_ID, ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8). No se sube nada."
             echo "listos=no" >> "$GITHUB_OUTPUT"
           else
@@ -61,15 +59,17 @@ jobs:
         run: |
           brew install xcodegen >/dev/null
           xcodegen generate
-      - name: Llave de App Store Connect (archivo temporal)
-        if: steps.secretos.outputs.listos == 'si'
-        run: |
-          umask 077
-          printf '%s' "$ASC_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
       - name: Archivar (firma automática)
         if: steps.secretos.outputs.listos == 'si'
         working-directory: ios
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
         run: |
+          # La llave vive en un archivo temporal solo mientras se archiva y exporta.
+          ( umask 077; printf '%s' "$ASC_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8" )
           xcodebuild archive \
             -project FinsoEmpresarial.xcodeproj -scheme FinsoEmpresarial -configuration Release \
             -destination "generic/platform=iOS" -archivePath build/FinsoEmpresarial.xcarchive \
@@ -83,6 +83,10 @@ jobs:
       - name: Exportar y subir a TestFlight
         if: steps.secretos.outputs.listos == 'si'
         working-directory: ios
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
           cat > build/ExportOptions.plist <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
