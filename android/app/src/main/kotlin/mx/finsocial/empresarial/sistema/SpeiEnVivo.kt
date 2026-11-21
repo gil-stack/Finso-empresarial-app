@@ -72,16 +72,20 @@ class SpeiEnVivo(private val contexto: Context, private val reloj: () -> Instant
         prefs.edit().putString(CLAVE, JsonFinso.encodeToString(serie, lista)).apply()
     }
 
-    /** Empieza a seguir la orden si no ha terminado, o actualiza la que ya se sigue. */
+    /**
+     * Empieza a seguir la orden si no ha terminado, o actualiza la que ya se
+     * sigue. Dice `true` si es nueva (para registrar su aviso push una vez).
+     */
     @Synchronized
-    fun alVer(o: Orden) {
+    fun alVer(o: Orden): Boolean {
         val lista = seguimientos()
         val seguida = lista.any { it.ref == o.id }
-        if (!seguida && o.esFinal) return
+        if (!seguida && o.esFinal) return false
         val (nueva, fuera) = Avisos.agregar(lista, SeguimientoDeOrden.de(o, reloj()))
         fuera.forEach { gestor.cancel(idDe(it.ref)) }
         guardar(nueva.filterNot { it.esFinal })
         nueva.firstOrNull { it.ref == o.id }?.let(::publicar)
+        return !seguida && !o.esFinal
     }
 
     /** Un mensaje de datos de FCM (contrato §5.1). */

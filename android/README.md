@@ -27,7 +27,18 @@ App nativa en **Kotlin + Jetpack Compose** (Material 3). La de iPhone vive en `i
 - **Cada PR que toca `android/`** corre «Android · pruebas»: lógica, pantallas con Robolectric (con capturas en claro y oscuro), lint y un APK de prueba. Las capturas y el APK quedan como artefactos de la corrida.
 - **Recorrido en emulador** («Android · recorrido en emulador»): enciende un teléfono Android de verdad (emulador Pixel 6, Android 14) dentro de GitHub, instala la app y hace el primer ingreso completo con datos simulados (correo, código, celular, huella, desbloqueo). Guarda una captura por pantalla en el artefacto `recorrido-android`.
   - En el emulador no hay dedo: se arma con `-Pfinso.huellaSimulada=true`, que cambia la llave del teléfono por una de software. Nunca se usa en la versión de la tienda.
-- **Entrega a prueba interna de Google Play**: llega en un PR posterior.
+- **Entrega a prueba interna de Google Play** («Android · entrega a Google Play», `.github/workflows/android-entrega.yml`): se corre solo a mano, desde Actions › Run workflow. Arma el AAB de la tienda (API real), lo firma con la llave de subida y lo sube a la pista interna. En los PR que tocan la compilación de release solo comprueba que el AAB compila, sin secretos.
+
+### Qué necesita Gil para la primera entrega (una sola vez)
+
+1. **Llave de subida.** Créala en tu Mac con `keytool -genkeypair -v -keystore subida.jks -alias subida -keyalg RSA -keysize 4096 -validity 10000`. Guarda el `.jks` y sus contraseñas fuera del repo (por ejemplo, en tu gestor de contraseñas).
+2. **Secretos del repo** (Settings › Secrets and variables › Actions):
+   - `ANDROID_KEYSTORE_B64` = el resultado de `base64 -i subida.jks`.
+   - `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` (`subida`) y `ANDROID_KEY_PASSWORD`.
+   - `PLAY_SERVICE_ACCOUNT_JSON` = el JSON de una cuenta de servicio de Google Cloud a la que en Play Console (Usuarios y permisos) le das «Publicar en pistas de prueba» de esta app.
+3. **Crear la app en Play Console** con el identificador `mx.finsocial.empresarial` (si estuviera ocupado, se cambia solo `finso.appId` en `gradle.properties` y la variable del repo `ANDROID_APP_ID`).
+4. **Primera versión a mano.** Google pide que el primer AAB se suba desde Play Console. Corre la entrega una vez, baja el artefacto `aab-android` y súbelo en Prueba interna. De ahí en adelante sube solo; mientras la app no tenga su primera revisión, corre la entrega con `estado = draft`.
+5. **Avisos con la app cerrada (opcional).** En Firebase (mismo proyecto de Google Cloud) agrega una app Android con el mismo identificador. De su configuración copia App ID, API key, Project ID y Sender ID a los secretos `FIREBASE_APP_ID`, `FIREBASE_API_KEY`, `FIREBASE_PROYECTO` y `FIREBASE_REMITENTE`. El servidor necesita además su credencial de FCM (contrato §5.1). Sin esto, la notificación en vivo solo avanza con la app abierta.
 
 ## Fuera de la app: SPEI en vivo, widget y accesos directos
 
