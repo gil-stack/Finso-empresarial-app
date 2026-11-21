@@ -8,8 +8,10 @@ struct IslaDinamicaBundle: WidgetBundle {
     var body: some Widget { SpeiEnVivo() }
 }
 
-/// El SPEI en curso en la Dynamic Island y en la pantalla bloqueada: importe,
-/// a quién y su estado. Nunca saldo ni CLABE (se ve sin desbloquear).
+/// El SPEI en curso en la Dynamic Island y en la pantalla bloqueada (§11).
+/// Nunca saldo ni CLABE. En la pantalla bloqueada solo va el estado: el
+/// importe y el destino se ven en la isla, marcados como sensibles para que
+/// el sistema los oculte si el teléfono está bloqueado.
 struct SpeiEnVivo: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: ActividadSpei.self) { context in
@@ -44,6 +46,7 @@ struct SpeiEnVivo: Widget {
                     .foregroundStyle(Isla.color(p.tono))
                     .minimumScaleFactor(0.7)
                     .lineLimit(1)
+                    .privacySensitive()
             } minimal: {
                 Simbolo(p: p, lado: 22)
             }
@@ -124,6 +127,7 @@ struct Detalle: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
             }
+            .privacySensitive()
             Text(p.titulo)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Isla.color(p.tono))
@@ -141,16 +145,25 @@ struct Detalle: View {
     }
 }
 
-/// Pantalla bloqueada: sigue el modo del teléfono.
+/// Pantalla bloqueada: sigue el modo del teléfono y solo dice el estado, sin
+/// importe ni destino (la ve cualquiera sin desbloquear; igual que Android).
 struct PantallaBloqueada: View {
     let context: ActivityViewContext<ActividadSpei>
 
     var body: some View {
         let p = Isla.presentacion(context)
         HStack(alignment: .center, spacing: 14) {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 Marca().foregroundStyle(.primary)
-                Detalle(context: context, p: p)
+                Text("Tu SPEI")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.secondary)
+                Text(p.titulo)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(Isla.color(p.tono))
+                Text("Abre la app para ver el detalle.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
             }
             Spacer(minLength: 8)
             Simbolo(p: p, lado: 44)
