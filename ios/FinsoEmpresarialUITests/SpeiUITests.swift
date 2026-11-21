@@ -88,10 +88,10 @@ final class SpeiUITests: XCTestCase {
         let importe = app.textFields["importe"]
         esperar(importe)
         importe.tap()
-        importe.typeText("1500")
+        importe.teclear("1500")
         let concepto = app.textFields["concepto"]
         concepto.tap()
-        concepto.typeText("Pago diseño año")
+        concepto.teclear("Pago diseño año")
         XCTAssertEqual(concepto.value as? String, "Pago diseno ano")
         captura("14-importe")
         app.buttons["revisar"].tap()
@@ -140,9 +140,9 @@ final class SpeiUITests: XCTestCase {
         let importe = app.textFields["importe"]
         esperar(importe)
         importe.tap()
-        importe.typeText("2500")
+        importe.teclear("2500")
         app.textFields["concepto"].tap()
-        app.textFields["concepto"].typeText("Flete 48")
+        app.textFields["concepto"].teclear("Flete 48")
         app.buttons["revisar"].tap()
         esperar(app.buttons["pedir"])
         app.buttons["pedir"].tap()

@@ -248,20 +248,26 @@ struct ImporteYConcepto: View {
                     .font(Letra.chica)
                     .foregroundStyle(Finso.secundario)
             }
-            if let e = envio.error { AvisoDeError(texto: e) }
-            Button("Revisar") {
-                enfocado = nil
-                Task { await envio.revisar() }
-            }
-            .buttonStyle(.principal(cargando: envio.ocupado))
-            .disabled(!envio.puedeRevisar)
-            .accessibilityIdentifier("revisar")
         }
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("Listo") { enfocado = enfocado == .importe ? .concepto : nil }
+        // «Revisar» va pegado abajo: con el teclado abierto queda justo encima
+        // y siempre se alcanza (la barra del teclado lo tapaba).
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 12) {
+                if let e = envio.error { AvisoDeError(texto: e) }
+                Button("Revisar") {
+                    enfocado = nil
+                    Task { await envio.revisar() }
+                }
+                .buttonStyle(.principal(cargando: envio.ocupado))
+                .disabled(!envio.puedeRevisar)
+                .accessibilityIdentifier("revisar")
             }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 12)
+            .frame(maxWidth: 520)
+            .frame(maxWidth: .infinity)
+            .background(Finso.fondo)
         }
         .onAppear {
             importe = envio.importeTecleado

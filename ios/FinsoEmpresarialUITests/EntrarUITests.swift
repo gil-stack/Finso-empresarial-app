@@ -92,7 +92,7 @@ final class EntrarUITests: XCTestCase {
         let celular = app.textFields["celular"]
         esperar(celular)
         celular.tap()
-        celular.typeText("5512349876")
+        celular.teclear("5512349876")
         XCTAssertEqual(celular.value as? String, "55 1234 9876")
         captura("08-celular")
         app.buttons["mandarCodigo"].tap()
@@ -114,5 +114,14 @@ final class EntrarUITests: XCTestCase {
         segunda.tap()
         esperar(texto("Transportes del Bajío"))
         captura("10-empresa-elegida")
+    }
+}
+
+extension XCUIElement {
+    /// Teclea de a una letra. Los campos que se formatean al teclear (celular,
+    /// importe, concepto) reescriben su texto; con todo de golpe, el simulador
+    /// a veces pierde letras en esa reescritura. Una persona no teclea tan rápido.
+    func teclear(_ texto: String) {
+        for letra in texto { typeText(String(letra)) }
     }
 }
