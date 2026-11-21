@@ -123,6 +123,7 @@ struct Raiz: View {
             ElegirEmpresa(control: control, usuario: usuario)
         case .dentro(let usuario):
             Inicio(app: app, usuario: usuario)
+                .id(usuario.empresa?.id ?? usuario.id)
         }
     }
 }
