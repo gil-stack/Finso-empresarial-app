@@ -277,4 +277,48 @@ final class OperacionTests: XCTestCase {
         XCTAssertEqual(mandados[0].encabezados["Idempotency-Key"], mandados[1].encabezados["Idempotency-Key"])
         XCTAssertEqual(mandados[0].cuerpo, mandados[1].cuerpo)
     }
+
+    /// Rechazo con la red caída: con el mismo motivo se reintenta igual (misma
+    /// llave y firma); si la persona cambia el motivo, se arma un pedido nuevo
+    /// con otra firma, porque la firma anterior iba con otro motivo.
+    func testRechazoConMotivoNuevoFirmaOtraVez() async throws {
+        let almacen = AlmacenEnMemoria()
+        almacen.guardar(Sesion(
+            acceso: "a", accesoExpiraEn: Date() + 600, renovacion: "r", renovacionExpiraEn: Date() + 3600))
+        almacen.guardarDispositivo("dev_1")
+        func orden(_ estado: String, motivo: String? = nil) -> Json {
+            var o: Json = [
+                "id": "spo_1", "estado": estado,
+                "destino": ["id": "dst_1", "titular": "PAPELERA", "clabeFinal": "4821"] as Json,
+                "importeCentavos": 1_000, "concepto": "Pago", "referenciaNumerica": 7, "pedidaPor": "Luis",
+                "creadaEn": Iso.texto(Date()), "actualizadaEn": Iso.texto(Date()), "version": 1,
+            ]
+            if let motivo { o["motivo"] = motivo }
+            return o
+        }
+        func prep(_ reto: String) -> Json {
+            ["reto": reto, "expiraEn": Iso.texto(Date() + 120), "importeCentavos": 1_000, "version": 1]
+        }
+        let t = TransporteFalso([(200, prep("r1"))])
+        let api = ApiHttp(almacen: almacen, base: URL(string: "https://x.mx/movil/v1")!, version: "1", transporte: t)
+        let llave = LlaveSimulada(existe: true)
+        let l = Liberacion(
+            orden: try Orden(json: orden("POR_LIBERAR")), api: api, almacen: almacen, llave: llave, esperar: { _ in })
+
+        await l.rechazar(motivo: "Motivo uno")  // se cae la red
+        XCTAssertNotNil(l.error)
+        await l.rechazar(motivo: "Motivo uno")  // mismo motivo: mismo pedido
+        XCTAssertEqual(llave.firmados.count, 1)
+
+        t.respuestas = [(200, prep("r2")), (200, orden("RECHAZADA", motivo: "Motivo dos"))]
+        await l.rechazar(motivo: "Motivo dos")
+        XCTAssertNil(l.error)
+        XCTAssertEqual(l.orden.estado, .rechazada)
+        XCTAssertEqual(llave.firmados.count, 2, "Firma otra vez con el motivo nuevo")
+        let mandados = t.pedidos.filter { $0.url.path.hasSuffix("/rechazar") }
+        XCTAssertEqual(mandados.count, 3)
+        XCTAssertEqual(mandados[0].encabezados["Idempotency-Key"], mandados[1].encabezados["Idempotency-Key"])
+        XCTAssertNotEqual(mandados[1].encabezados["Idempotency-Key"], mandados[2].encabezados["Idempotency-Key"])
+        XCTAssertEqual(t.pedidos.filter { $0.url.path.hasSuffix("/rechazar/preparar") || $0.url.path.hasSuffix("/liberar/preparar") }.count, 2)
+    }
 }

@@ -20,7 +20,7 @@ public final class Liberacion {
     @ObservationIgnored let almacen: AlmacenDeSesion
     @ObservationIgnored let llave: LlaveDelDispositivo
     @ObservationIgnored let esperar: @Sendable (TimeInterval) async -> Void
-    @ObservationIgnored private var intento: (accion: String, reto: String, llave: String, firma: String)?
+    @ObservationIgnored private var intento: (accion: String, detalle: String, reto: String, llave: String, firma: String)?
 
     public init(
         orden: Orden, api: FinsoApi, almacen: AlmacenDeSesion, llave: LlaveDelDispositivo,
@@ -58,11 +58,14 @@ public final class Liberacion {
     }
 
     /// Prepara el reto (o reusa el del intento anterior si falló la red) y
-    /// firma con Face ID.
-    private func firmar(_ accion: String, texto: (String, String) -> String, motivo: String) async throws
-        -> (reto: String, llave: String, firma: String)
-    {
-        if let i = intento, i.accion == accion { return (i.reto, i.llave, i.firma) }
+    /// firma con Face ID. `detalle` es lo que viaja además de la firma (el
+    /// motivo del rechazo): si cambió desde el intento que falló, se arma un
+    /// pedido nuevo con otra firma y otra llave, como en Android.
+    private func firmar(
+        _ accion: String, detalle: String = "", texto: (String, String) -> String, motivo: String
+    ) async throws -> (reto: String, llave: String, firma: String) {
+        if let i = intento, i.accion == accion, i.detalle == detalle { return (i.reto, i.llave, i.firma) }
+        intento = nil
         guard let dispositivo = almacen.dispositivo() else { throw ErrorFinso("DISPOSITIVO_REVOCADO", http: 401) }
         let p = try await api.prepararLiberacion(orden.id)
         guard p.importeCentavos == orden.importeCentavos, p.version == orden.version else {
@@ -71,7 +74,7 @@ public final class Liberacion {
             throw ErrorFinso("ORDEN_CAMBIO", http: 409)
         }
         let firma = try await llave.firmar(texto(dispositivo, p.reto), motivo: motivo)
-        let i = (accion: accion, reto: p.reto, llave: nuevaLlaveDeIdempotencia(), firma: firma)
+        let i = (accion: accion, detalle: detalle, reto: p.reto, llave: nuevaLlaveDeIdempotencia(), firma: firma)
         intento = i
         return (i.reto, i.llave, i.firma)
     }
@@ -108,7 +111,7 @@ public final class Liberacion {
         let o = orden
         await trabajar {
             let f = try await firmar(
-                "rechazar", texto: { TextoFirmado.rechazar(dispositivo: $0, reto: $1, orden: o.id) },
+                "rechazar", detalle: m, texto: { TextoFirmado.rechazar(dispositivo: $0, reto: $1, orden: o.id) },
                 motivo: "Rechazar el SPEI de \(Dinero.pesos(o.importeCentavos))")
             try await mandar {
                 try await api.rechazar(
