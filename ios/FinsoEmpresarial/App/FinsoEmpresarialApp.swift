@@ -28,6 +28,8 @@ final class EstadoDeLaApp {
     let control: ControlDeSesion
     let simulada = Configuracion.simulada
     let telefono: DatosDelTelefono
+    /// Orden que pidió abrir la actividad en vivo (`finso-empresarial://orden?ref=…`).
+    var ordenPorAbrir: String?
 
     init() {
         let p = Configuracion.piezas()
@@ -40,6 +42,16 @@ final class EstadoDeLaApp {
             http.alPedirEmpresa = { Task { @MainActor in control.pedirEmpresa() } }
         }
         control.arrancar()
+        ActividadesEnVivo.compartidas.api = control.api
+    }
+
+    func abrir(_ url: URL) {
+        guard url.scheme == "finso-empresarial", url.host == "orden",
+              let ref = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?
+                .first(where: { $0.name == "ref" })?.value,
+              ref.hasPrefix("spo_")
+        else { return }
+        ordenPorAbrir = ref
     }
 
     func nuevoFlujo() -> FlujoDeEntrada { FlujoDeEntrada(control: control, telefono: telefono) }
@@ -124,6 +136,7 @@ struct Raiz: View {
             default: break
             }
         }
+        .onOpenURL { app.abrir($0) }
         .onChange(of: fase) { _, nueva in
             switch nueva {
             case .background: control.fueASegundoPlano()

@@ -22,7 +22,8 @@ jobs:
   nucleo:
     name: Núcleo (Linux)
     runs-on: ubuntu-latest
-    container: swift:6.0-jammy
+    # Imagen fijada por su huella (sha256), como las acciones de terceros.
+    container: swift:6.0-jammy@sha256:ae8eacc602559b7060d5aabdfcdf69f79a9fcaac778162ec1be291b71c018331
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4

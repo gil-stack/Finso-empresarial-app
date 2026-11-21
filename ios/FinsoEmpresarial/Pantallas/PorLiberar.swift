@@ -109,6 +109,9 @@ struct DetalleDeOrden: View {
         .sheet(isPresented: $rechazando) {
             if let l = liberacion { HojaDeRechazo(liberacion: l, motivo: $motivo) { rechazando = false } }
         }
+        .onChange(of: liberacion?.orden) { _, o in
+            if let o, liberacion?.terminada == true { ActividadesEnVivo.compartidas.seguir(o) }
+        }
         .onChange(of: liberacion?.terminada) { _, t in
             if t == true {
                 exito += 1

@@ -408,5 +408,8 @@ struct ResultadoDeSpei: View {
         }
         .sensoryFeedback(.success, trigger: envio.orden?.id)
         .task { await envio.seguir() }
+        .onChange(of: envio.orden, initial: true) { _, o in
+            if let o { ActividadesEnVivo.compartidas.seguir(o) }
+        }
     }
 }
