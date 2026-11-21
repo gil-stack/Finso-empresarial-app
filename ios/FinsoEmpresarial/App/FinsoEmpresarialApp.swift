@@ -6,6 +6,13 @@ import UIKit
 struct FinsoEmpresarialApp: App {
     @State private var app = EstadoDeLaApp()
 
+    init() {
+        // Selector segmentado: lo elegido en menta con letra tinta (§3.6).
+        let s = UISegmentedControl.appearance()
+        s.selectedSegmentTintColor = UIColor(hex: 0x1DBB9D)
+        s.setTitleTextAttributes([.foregroundColor: UIColor(hex: 0x102D31)], for: .selected)
+    }
+
     var body: some Scene {
         WindowGroup {
             LienzoSeguro(activo: !Configuracion.capturasPermitidas, contenido: Raiz(app: app))
@@ -14,43 +21,84 @@ struct FinsoEmpresarialApp: App {
     }
 }
 
-/// Lo que comparte toda la app. En el PR de «entrar» se le agrega el control
-/// de la sesión (fuera, bloqueada, dentro).
+/// Lo que comparte toda la app: la sesión y el modo (simulado o real).
+@MainActor
 @Observable
 final class EstadoDeLaApp {
-    let api: FinsoApi
-    let almacen: AlmacenDeSesion
-    let llave: LlaveDelDispositivo
+    let control: ControlDeSesion
     let simulada = Configuracion.simulada
+    let telefono: DatosDelTelefono
 
     init() {
         let p = Configuracion.piezas()
-        api = p.api
-        almacen = p.almacen
-        llave = p.llave
+        control = ControlDeSesion(api: p.api, almacen: p.almacen, llave: p.llave)
+        let d = UIDevice.current
+        telefono = DatosDelTelefono(nombre: d.name, modelo: d.model, versionSistema: d.systemVersion)
+        if let http = p.api as? ApiHttp {
+            let control = self.control
+            http.alCerrarSesion = { e in Task { @MainActor in control.cerradaPorServidor(e) } }
+            http.alPedirEmpresa = { Task { @MainActor in control.pedirEmpresa() } }
+        }
+        control.arrancar()
+    }
+
+    func nuevoFlujo() -> FlujoDeEntrada { FlujoDeEntrada(control: control, telefono: telefono) }
+}
+
+/// Apariencia elegida en Ajustes (§3.6).
+enum Apariencia: String, CaseIterable, Identifiable {
+    case sistema, claro, oscuro
+    var id: String { rawValue }
+    var nombre: String {
+        switch self {
+        case .sistema: return "Sistema"
+        case .claro: return "Claro"
+        case .oscuro: return "Oscuro"
+        }
+    }
+    var esquema: ColorScheme? {
+        switch self {
+        case .sistema: return nil
+        case .claro: return .light
+        case .oscuro: return .dark
+        }
     }
 }
 
-/// Raíz de la app: pantalla según el estado, tapa de privacidad al ir a
-/// segundo plano y aviso tras una captura de pantalla.
+/// Raíz de la app: pantalla según el estado de la sesión (con fundido),
+/// bloqueo al volver de segundo plano, tapa de privacidad y aviso tras una
+/// captura de pantalla.
 struct Raiz: View {
     let app: EstadoDeLaApp
     @Environment(\.scenePhase) private var fase
+    @AppStorage("apariencia") private var apariencia = Apariencia.sistema
     @State private var avisoDeCaptura = false
+
+    private var control: ControlDeSesion { app.control }
 
     var body: some View {
         ZStack {
-            Bienvenida(simulada: app.simulada) {}
+            pantalla
+                .transition(.opacity)
             if fase != .active {
                 TapaDePrivacidad().transition(.opacity)
             }
         }
+        .animation(Movimiento.lento, value: control.estado)
         .animation(Movimiento.rapido, value: fase)
+        .preferredColorScheme(apariencia.esquema)
         .overlay(alignment: .bottom) {
             if avisoDeCaptura {
                 AvisoCapsula(simbolo: "eye.slash", texto: "Por seguridad, las capturas salen en negro.")
                     .padding(.bottom, 24)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .onChange(of: fase) { _, nueva in
+            switch nueva {
+            case .background: control.fueASegundoPlano()
+            case .active: control.volvio()
+            default: break
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.userDidTakeScreenshotNotification)) { _ in
@@ -60,6 +108,21 @@ struct Raiz: View {
                 try? await Task.sleep(for: .seconds(3))
                 withAnimation(Movimiento.normal) { avisoDeCaptura = false }
             }
+        }
+    }
+
+    @ViewBuilder private var pantalla: some View {
+        switch control.estado {
+        case .arrancando:
+            FondoDeAcceso()
+        case .fuera(let aviso):
+            Acceso(app: app, aviso: aviso)
+        case .bloqueada(let nombre):
+            Desbloqueo(control: control, nombre: nombre, automatico: control.faceIdAutomatico)
+        case .elegirEmpresa(let usuario):
+            ElegirEmpresa(control: control, usuario: usuario)
+        case .dentro(let usuario):
+            Inicio(app: app, usuario: usuario)
         }
     }
 }

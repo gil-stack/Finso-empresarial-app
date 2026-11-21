@@ -34,7 +34,7 @@ jobs:
     name: App en simulador (macOS)
     needs: nucleo
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - name: Elegir Xcode 26 (Liquid Glass)
@@ -73,6 +73,23 @@ jobs:
           codigo=$?
           grep -E "error:|Test Case .* (passed|failed)|Executed|\*\* (TEST|BUILD)" build/xcodebuild.log | tail -150
           exit $codigo
+      - name: Sacar las capturas de las pruebas de pantalla
+        if: always()
+        working-directory: ios
+        run: |
+          mkdir -p build/capturas
+          if [ -d build/Pruebas.xcresult ]; then
+            xcrun xcresulttool export attachments --path build/Pruebas.xcresult --output-path build/capturas || true
+          fi
+          ls build/capturas | head -40
+      - name: Guardar capturas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-capturas
+          path: ios/build/capturas
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Guardar resultados si falla
         if: failure()
         uses: actions/upload-artifact@v4
