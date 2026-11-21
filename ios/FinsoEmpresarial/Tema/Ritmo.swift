@@ -3,7 +3,7 @@ import SwiftUI
 // Movimiento de la especificación §4: rápido 180 ms, normal 320 ms, lento
 // 520 ms, con curva easeOutCubic. Con «reducir movimiento» solo hay fundidos.
 
-enum Movimiento {
+enum Ritmo {
     static let curva = (x1: 0.33, y1: 1.0, x2: 0.68, y2: 1.0)
 
     static func cubica(_ segundos: Double) -> Animation {
@@ -49,7 +49,7 @@ struct Escalonado: ViewModifier {
             .opacity(visible ? 1 : 0)
             .offset(y: visible || reducir ? 0 : 8)
             .onAppear {
-                withAnimation(Movimiento.normal.delay(Double(min(indice, 12)) * 0.03)) { visible = true }
+                withAnimation(Ritmo.normal.delay(Double(min(indice, 12)) * 0.03)) { visible = true }
             }
     }
 }

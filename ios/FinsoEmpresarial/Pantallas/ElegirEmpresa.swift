@@ -49,7 +49,7 @@ struct ElegirEmpresa: View {
             }
         }
         .sensoryFeedback(.selection, trigger: eligiendo)
-        .animation(Movimiento.rapido, value: error)
+        .animation(Ritmo.rapido, value: error)
     }
 
     private func elegir(_ id: String) async {
@@ -71,6 +71,6 @@ struct Presionable: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(Movimiento.resorte, value: configuration.isPressed)
+            .animation(Ritmo.resorte, value: configuration.isPressed)
     }
 }

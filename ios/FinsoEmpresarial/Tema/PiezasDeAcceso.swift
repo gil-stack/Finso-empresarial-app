@@ -54,7 +54,7 @@ struct CampoDeAcceso: View {
             .overlay(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .strokeBorder(enfocado ? Finso.menta : .clear, lineWidth: 1.5))
-            .animation(Movimiento.rapido, value: enfocado)
+            .animation(Ritmo.rapido, value: enfocado)
             .contentShape(Rectangle())
             .onTapGesture { enfocado = true }
         }

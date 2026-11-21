@@ -72,6 +72,8 @@ jobs:
             -resultBundlePath build/Pruebas.xcresult > build/xcodebuild.log 2>&1
           codigo=$?
           grep -E "error:|Test Case .* (passed|failed)|Executed|\*\* (TEST|BUILD)" build/xcodebuild.log | tail -150
+          # Si una prueba de pantalla no encontró algo, su árbol de accesibilidad.
+          sed -n '/=== ARBOL/,/=== FIN ARBOL/p' build/xcodebuild.log | head -400
           exit $codigo
       - name: Sacar las capturas de las pruebas de pantalla
         if: always()
@@ -82,6 +84,26 @@ jobs:
             xcrun xcresulttool export attachments --path build/Pruebas.xcresult --output-path build/capturas || true
           fi
           ls build/capturas | head -40
+          # Copias chicas en el log (entre marcas) para revisarlas sin bajar
+          # el artefacto.
+          python3 - <<'PY' || true
+          import base64, json, os, subprocess
+          d = "build/capturas"
+          m = os.path.join(d, "manifest.json")
+          if os.path.exists(m):
+              for prueba in json.load(open(m)):
+                  for a in prueba.get("attachments", []):
+                      nombre = a.get("suggestedHumanReadableName") or a["exportedFileName"]
+                      origen = os.path.join(d, a["exportedFileName"])
+                      chica = "/tmp/chica.jpg"
+                      subprocess.run(["sips", "-Z", "640", "-s", "format", "jpeg", "-s", "formatOptions", "55",
+                                      origen, "--out", chica], capture_output=True)
+                      if os.path.exists(chica):
+                          print("=== CAPTURA " + nombre)
+                          print(base64.b64encode(open(chica, "rb").read()).decode())
+                          print("=== FIN")
+                          os.remove(chica)
+          PY
       - name: Guardar capturas
         if: always()
         uses: actions/upload-artifact@v4
