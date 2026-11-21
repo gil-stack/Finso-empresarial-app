@@ -1,0 +1,88 @@
+# Pruebas de la app Android en cada PR que toca android/.
+# Corre en Linux (lo más barato de GitHub). Las capturas de las pantallas
+# quedan como artefacto «capturas-android» en la corrida.
+name: Android · pruebas
+
+on:
+  pull_request:
+    paths:
+      - "android/**"
+      - ".github/workflows/android-*.yml"
+  push:
+    branches: [main]
+    paths:
+      - "android/**"
+      - ".github/workflows/android-*.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: android-pruebas-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    name: Lógica, pantallas y compilación
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      - name: Pruebas de lógica, pantallas (con capturas), lint y APK de prueba
+        run: >
+          ./gradlew --stacktrace
+          :nucleo:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+          -Pfinso.build=${{ github.run_number }}
+
+      - name: Resumen
+        if: always()
+        run: |
+          {
+            echo "### Android"
+            echo ""
+            echo "- Pruebas de lógica: \`nucleo\` · pruebas de pantallas: \`app\` (Robolectric)."
+            n=$(ls app/build/capturas/*.png 2>/dev/null | wc -l)
+            echo "- Capturas: **$n** pantallas en el artefacto **capturas-android** (abajo, en esta corrida)."
+            echo "- APK de prueba (datos simulados): artefacto **apk-prueba-android**."
+            for f in app/build/capturas/*.png; do [ -e "$f" ] && echo "  - $(basename "$f")"; done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Subir capturas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capturas-android
+          path: android/app/build/capturas/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Subir APK de prueba
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-prueba-android
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 14
+
+      - name: Subir reportes si algo falló
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reportes-android
+          path: |
+            android/*/build/reports/
+            android/*/build/test-results/
+          retention-days: 7

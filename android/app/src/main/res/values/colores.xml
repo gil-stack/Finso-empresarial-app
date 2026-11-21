@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Marca Finso (especificación §4). En Compose se usan los de tema/Colores.kt. -->
+    <color name="tinta">#FF102D31</color>
+    <color name="menta">#FF1DBB9D</color>
+    <color name="lienzo">#FFF2F7F2</color>
+    <color name="acceso_base">#FF061518</color>
+</resources>
