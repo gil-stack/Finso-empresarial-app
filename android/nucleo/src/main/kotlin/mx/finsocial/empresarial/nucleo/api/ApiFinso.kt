@@ -170,6 +170,20 @@ class ApiFinso(
             llave = llave, salida = Orden.serializer(),
         )
 
+    // ───── §5.1 Avisos en vivo ─────
+
+    /**
+     * Pide al servidor que avise por push (FCM) cada cambio de esta orden.
+     * 204 aunque el servidor no lo guarde; la app no distingue.
+     */
+    suspend fun registrarAviso(orden: String, token: String) {
+        autenticado<Unit?>(
+            "avisos/actividad", "POST",
+            cuerpo = json(PeticionAviso(orden, plataforma, token), PeticionAviso.serializer()),
+            salida = null,
+        )
+    }
+
     // ───── Transporte ─────
 
     private fun <T> json(valor: T, s: KSerializer<T>): RequestBody = JsonFinso.encodeToString(s, valor).toRequestBody(tipoJson)

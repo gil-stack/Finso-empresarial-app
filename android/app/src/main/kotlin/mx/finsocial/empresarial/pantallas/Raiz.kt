@@ -46,6 +46,12 @@ fun Raiz(contenedor: Contenedor) {
     // al salir, cambiar de cuenta o elegir empresa se olvida.
     LaunchedEffect(estado) {
         if (estado !is EstadoSesion.Dentro && estado !is EstadoSesion.Bloqueada) contenedor.speiSinConfirmar = null
+        // Accesos directos según permisos; al salir se quitan junto con el widget y los avisos.
+        when (val e = estado) {
+            is EstadoSesion.Dentro -> contenedor.sistema.alEntrar(e.usuario)
+            is EstadoSesion.Fuera -> contenedor.sistema.alSalir()
+            else -> Unit
+        }
     }
     LaunchedEffect(Unit) { contenedor.sesion.arrancar() }
 

@@ -1,5 +1,6 @@
 package mx.finsocial.empresarial
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.SystemBarStyle
@@ -26,7 +27,14 @@ class MainActivity : FragmentActivity() {
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
         )
         val contenedor = (application as FinsoApp).contenedor
+        if (savedInstanceState == null) contenedor.abrirEnlace(intent?.dataString)
         setContent { Raiz(contenedor) }
+    }
+
+    /** Una liga con la app ya abierta (singleTask). */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        (application as FinsoApp).contenedor.abrirEnlace(intent.dataString)
     }
 
     override fun onResume() {

@@ -247,3 +247,7 @@ object EstadoOrden {
 @Serializable data class PeticionFirma(val reto: String, val firma: String)
 
 @Serializable data class PeticionRechazo(val motivo: String, val reto: String, val firma: String)
+
+// ───── §5.1 Avisos en vivo ─────
+
+@Serializable data class PeticionAviso(val orden: String, val plataforma: String, val token: String)

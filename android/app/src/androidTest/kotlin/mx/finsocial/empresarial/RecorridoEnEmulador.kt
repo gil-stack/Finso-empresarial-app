@@ -39,6 +39,9 @@ class RecorridoEnEmulador {
 
     @Test fun primerIngresoYDesbloqueo() {
         assumeTrue("Solo con la huella simulada", BuildConfig.HUELLA_SIMULADA)
+        // Las notificaciones en vivo del SPEI: se da el permiso antes, así no sale el diálogo.
+        val instr = InstrumentationRegistry.getInstrumentation()
+        instr.uiAutomation.grantRuntimePermission(instr.targetContext.packageName, "android.permission.POST_NOTIFICATIONS")
         val r = recorrido().primerIngreso("ana@empresa.mx", codigoEquivocado = true, fotos = true)
         r.tocarEtiqueta("activar").esperar("Hola, Ana").foto("07-dentro")
         r.tocarEtiqueta("ajustes").esperar("Apariencia").foto("08-ajustes")
@@ -54,6 +57,12 @@ class RecorridoEnEmulador {
         // Liberar el de Luis: pasa a «Enviando…» y en unos segundos a «SPEI enviado».
         r.tocarEtiqueta("por-liberar").tocarEtiqueta("orden-spo_SIM_PENDIENTE").esperar("pidió mandar").foto("11-por-liberar")
         r.tocarEtiqueta("liberar").esperar("SPEI enviado").foto("12-spei-enviado")
+        // La notificación en vivo de los dos SPEI, con la cortina abierta.
+        instr.uiAutomation.executeShellCommand("cmd statusbar expand-notifications").close()
+        Thread.sleep(1_500)
+        r.foto("12b-notificaciones")
+        instr.uiAutomation.executeShellCommand("cmd statusbar collapse").close()
+        Thread.sleep(800)
         r.tocarEtiqueta("listo").esperarEtiqueta("saludo").foto("13-inicio")
     }
 }

@@ -79,6 +79,9 @@ class FirmasTest {
         val texto = luis.llave.firmados.single()
         assertTrue(texto.startsWith("finso-movil:v1:spei:${luis.guardado.dispositivo}:"))
         assertTrue(texto.endsWith(":dst_SIM_PAPELERA:150000:Pago diseno ano"))
+        // §5.1: pide avisos en vivo de esa orden con el token FCM.
+        luis.api.registrarAviso(o.id, "token-fcm:" + "a".repeat(40))
+        assertEquals("token-fcm:" + "a".repeat(40), servidor.avisosRegistrados[o.id])
     }
 
     @Test fun `si se corta la red el reintento manda lo mismo sin pedir huella y no duplica`() = runTest {

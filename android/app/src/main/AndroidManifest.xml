@@ -4,6 +4,10 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <!-- La notificación en vivo de cada SPEI (§11). Se pide al ver el primer resultado. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Android 16: que salga como Live Update (chip en la barra de estado). -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
 
     <!-- Sin respaldo en la nube: la llave, los tokens y la empresa elegida
          nunca salen del teléfono (especificación §2). -->
@@ -31,6 +35,30 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Ligas internas: notificación, widget y accesos directos. Sin
+                 BROWSABLE, así ninguna página web puede abrirlas. Solo dicen a
+                 dónde ir; todo se vuelve a pedir al servidor con la sesión. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="finso-empresarial" />
+            </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".sistema.ReceptorDeAvisos"
+            android:exported="false" />
+
+        <receiver
+            android:name=".sistema.WidgetFinso"
+            android:exported="false"
+            android:label="@string/app_nombre">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_finso" />
+        </receiver>
     </application>
 </manifest>
